@@ -1,222 +1,385 @@
-import React, { useState } from 'react';
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026 디지털 리터러시 with AI 신청(09~11월 운영) 🤖</title>
+  
+  <!-- React 및 필수 라이브러리 CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-export default function ReservationForm() {
-  const [formData, setFormData] = useState({
-    date: '2026-09-14',
-    time: '10:00 ~ 12:00',
-    room: '강의실1',
-    count: 1,
-    department: '',
-    course: '',
-    secondChoice: '',
-    thirdChoice: '',
-    name: '',
-    password: '',
-    notes: '',
-  });
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --primary-hover: #1d4ed8;
+      --danger-color: #dc2626;
+      --success-color: #16a34a;
+      --bg-color: #f1f5f9;
+      --card-bg: #ffffff;
+      --border-color: #e2e8f0;
+      --text-main: #1e293b;
+      --text-sub: #475569;
+    }
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+    }
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Submitted Data:', formData);
-    alert('강의실 신청이 완료되었습니다.');
-  };
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    }
 
-  return (
-    <div className="max-w-md mx-auto bg-white rounded-2xl shadow-lg border border-slate-100 p-6 space-y-5 text-slate-800">
-      <h2 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-3">
-        강의실 예약 신청
-      </h2>
+    .header-area {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 16px;
+    }
 
-      <form onSubmit={handleSubmit} className="space-y-4 text-sm">
-        {/* 신청 일자 (필수) */}
-        <div>
-          <label className="block font-medium text-slate-700 mb-1">
-            신청 일자 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="date"
-            name="date"
-            value={formData.date}
-            onChange={handleChange}
-            required
-            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-          />
+    h1 { margin: 0; font-size: 1.5rem; color: #0f172a; }
+    .top-btns { display: flex; gap: 8px; }
+
+    .btn {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: var(--primary-color); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-admin { background: #475569; color: white; }
+    .btn-excel { background: var(--success-color); color: white; }
+    .btn-secondary { background: #94a3b8; color: white; }
+    .btn-danger { background: var(--danger-color); color: white; }
+
+    .notice-banner {
+      background: #fffbe2;
+      border: 1px solid #fef3c7;
+      border-left: 5px solid #f59e0b;
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 0.88rem;
+      color: #92400e;
+      line-height: 1.7;
+    }
+
+    .main-layout {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+    }
+
+    .calendar-section { flex: 2.2; min-width: 0; }
+    .form-section {
+      flex: 1;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      padding: 20px;
+      border-radius: 10px;
+      position: sticky;
+      top: 20px;
+    }
+
+    .form-section h3 {
+      margin-top: 0;
+      margin-bottom: 16px;
+      font-size: 1.1rem;
+      color: #0f172a;
+      border-bottom: 2px solid var(--primary-color);
+      padding-bottom: 8px;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .day-header {
+      text-align: center;
+      font-weight: bold;
+      padding: 8px;
+      background: #f1f5f9;
+      border-radius: 6px;
+      color: var(--text-sub);
+      font-size: 0.85rem;
+    }
+
+    .day-cell {
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      min-height: 150px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .date-number {
+      font-weight: bold;
+      font-size: 0.88rem;
+      margin-bottom: 8px;
+      color: #334155;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .slot-item {
+      font-size: 0.75rem;
+      padding: 6px;
+      margin-bottom: 6px;
+      border-radius: 5px;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+    }
+
+    .slot-item:hover { background: #eff6ff; border-color: #bfdbfe; }
+    .slot-title { font-weight: bold; color: #1e293b; margin-bottom: 4px; }
+    .room-line { display: flex; justify-content: space-between; font-size: 0.7rem; margin-top: 2px; }
+
+    .form-group { margin-bottom: 12px; }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--text-sub);
+    }
+    .form-group label.req::after { content: " *"; color: var(--danger-color); }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-family: inherit;
+    }
+
+    .form-row { display: flex; gap: 8px; }
+    .form-btns { display: flex; gap: 8px; margin-top: 16px; }
+
+    @media (max-width: 900px) {
+      .main-layout { flex-direction: column; }
+      .form-section { position: static; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel">
+  const { useState } = React;
+
+  function App() {
+    const [formData, setFormData] = useState({
+      date: '2026-09-14',
+      time: '10:00 ~ 12:00',
+      room: '강의실1',
+      count: 1,
+      department: '',
+      course: '',
+      secondChoice: '',
+      thirdChoice: '',
+      name: '',
+      password: '',
+      notes: ''
+    });
+
+    const handleChange = (e) => {
+      const { name, value } = e.target;
+      setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleSubmit = (e) => {
+      e.preventDefault();
+      console.log('Submitted Data:', formData);
+      alert('강의실 신청이 성공적으로 완료되었습니다.');
+    };
+
+    const handleReset = () => {
+      setFormData({
+        date: '2026-09-14',
+        time: '10:00 ~ 12:00',
+        room: '강의실1',
+        count: 1,
+        department: '',
+        course: '',
+        secondChoice: '',
+        thirdChoice: '',
+        name: '',
+        password: '',
+        notes: ''
+      });
+    };
+
+    return (
+      <div class="container">
+        {/* 상단 헤더 영역 */}
+        <div class="header-area">
+          <h1>🤖 2026 디지털 리터러시 with AI 신청 (09~11월)</h1>
+          <div class="top-btns">
+            <button class="btn btn-secondary" onClick={() => window.location.reload()}>🔄 새로고침</button>
+            <button class="btn btn-primary">내 신청 조회/수정</button>
+            <button class="btn btn-admin">관리자 로그인</button>
+          </div>
         </div>
 
-        {/* 신청 시간 (필수) */}
-        <div>
-          <label className="block font-medium text-slate-700 mb-1">
-            신청 시간 <span className="text-red-500">*</span>
-          </label>
-          <select
-            name="time"
-            value={formData.time}
-            onChange={handleChange}
-            required
-            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white"
-          >
-            <option value="10:00 ~ 12:00">10:00 ~ 12:00</option>
-            <option value="14:00 ~ 16:00">14:00 ~ 16:00</option>
-            <option value="16:00 ~ 18:00">16:00 ~ 18:00</option>
-          </select>
+        {/* 유의사항 배너 */}
+        <div class="notice-banner">
+          <div>※ 분반별 1회 2시간 진행됩니다.</div>
+          <div>※ 동시간대 2분반 진행 가능합니다. (단, 목요일은 강의실1만 운영)</div>
+          <div>※ 강의실별 최대 40명까지 신청 가능합니다.</div>
+          <div>※ 추석 연휴 및 공휴일(10/5 대체공휴일, 10/9 한글날)은 휴무입니다.</div>
         </div>
 
-        {/* 희망 강의실 (필수) */}
-        <div>
-          <label className="block font-medium text-slate-700 mb-1">
-            희망 강의실 <span className="text-red-500">*</span>
-          </label>
-          <select
-            name="room"
-            value={formData.room}
-            onChange={handleChange}
-            required
-            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white"
-          >
-            <option value="강의실1">강의실1</option>
-            <option value="강의실2">강의실2</option>
-          </select>
-        </div>
+        {/* 메인 레이아웃 (달력 예시 + 신청폼) */}
+        <div class="main-layout">
+          {/* 달력 영역 */}
+          <div class="calendar-section">
+            <div class="calendar-header">
+              <button class="btn btn-secondary">&lt; 이전달</button>
+              <h2 style={{ margin: 0, fontSize: '1.2rem' }}>2026년 9월</h2>
+              <button class="btn btn-secondary">다음달 &gt;</button>
+            </div>
 
-        {/* 신청 인원 수 (필수) */}
-        <div>
-          <label className="block font-medium text-slate-700 mb-1">
-            신청 인원 수 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="number"
-            name="count"
-            min="1"
-            value={formData.count}
-            onChange={handleChange}
-            required
-            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-          />
-        </div>
+            <div class="calendar-grid">
+              {['월', '화', '수', '목', '금'].map(day => (
+                <div key={day} class="day-header">{day}</div>
+              ))}
+              
+              {/* 샘플 달력 셀 */}
+              {[14, 15, 16, 17, 18].map(date => (
+                <div key={date} class="day-cell">
+                  <div class="date-number">{date}일</div>
+                  {['10:00~12:00', '14:00~16:00', '16:00~18:00'].map(slot => (
+                    <div 
+                      key={slot} 
+                      class="slot-item"
+                      onClick={() => setFormData(prev => ({ ...prev, date: `2026-09-${date}`, time: slot }))}
+                    >
+                      <div class="slot-title">{slot}</div>
+                      <div class="room-line"><span>강의실1</span><span style={{ color: 'green' }}>가능</span></div>
+                      <div class="room-line"><span>강의실2</span><span style={{ color: 'green' }}>가능</span></div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
 
-        {/* 학과(부) (필수) */}
-        <div>
-          <label className="block font-medium text-slate-700 mb-1">
-            학과(부) <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="department"
-            placeholder="예: 간호학과"
-            value={formData.department}
-            onChange={handleChange}
-            required
-            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
-          />
-        </div>
+          {/* 예약 신청 폼 영역 */}
+          <div class="form-section">
+            <h3>📝 강의실 예약 신청</h3>
+            
+            <form onSubmit={handleSubmit}>
+              <div class="form-row">
+                <div class="form-group" style={{ flex: 1 }}>
+                  <label class="req">신청 일자</label>
+                  <input type="date" name="date" value={formData.date} onChange={handleChange} required />
+                </div>
+                <div class="form-group" style={{ flex: 1 }}>
+                  <label class="req">신청 시간</label>
+                  <select name="time" value={formData.time} onChange={handleChange} required>
+                    <option value="10:00 ~ 12:00">10:00 ~ 12:00</option>
+                    <option value="14:00 ~ 16:00">14:00 ~ 16:00</option>
+                    <option value="16:00 ~ 18:00">16:00 ~ 18:00</option>
+                  </select>
+                </div>
+              </div>
 
-        {/* 교과목/분반 (선택) */}
-        <div>
-          <label className="block font-medium text-slate-700 mb-1">
-            교과목/분반
-          </label>
-          <input
-            type="text"
-            name="course"
-            placeholder="예: A분반"
-            value={formData.course}
-            onChange={handleChange}
-            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
-          />
-        </div>
+              <div class="form-row">
+                <div class="form-group" style={{ flex: 1 }}>
+                  <label class="req">희망 강의실</label>
+                  <select name="room" value={formData.room} onChange={handleChange} required>
+                    <option value="강의실1">강의실1</option>
+                    <option value="강의실2">강의실2</option>
+                  </select>
+                </div>
+                <div class="form-group" style={{ flex: 1 }}>
+                  <label class="req">신청 인원 수</label>
+                  <input type="number" name="count" min="1" max="40" value={formData.count} onChange={handleChange} required />
+                </div>
+              </div>
 
-        {/* 2순위 희망일시 (필수) */}
-        <div>
-          <label className="block font-medium text-slate-700 mb-1">
-            2순위 희망일시 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="secondChoice"
-            placeholder="예: 09-20 14:00~16:00"
-            value={formData.secondChoice}
-            onChange={handleChange}
-            required
-            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
-          />
-        </div>
+              <div class="form-row">
+                <div class="form-group" style={{ flex: 1 }}>
+                  <label class="req">학과(부)</label>
+                  <input type="text" name="department" placeholder="예: 간호학과" value={formData.department} onChange={handleChange} required />
+                </div>
+                <div class="form-group" style={{ flex: 1 }}>
+                  <label>교과목/분반</label>
+                  <input type="text" name="course" placeholder="예: A분반" value={formData.course} onChange={handleChange} />
+                </div>
+              </div>
 
-        {/* 3순위 희망일시 (필수) */}
-        <div>
-          <label className="block font-medium text-slate-700 mb-1">
-            3순위 희망일시 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="thirdChoice"
-            placeholder="예: 09-21 10:00~12:00"
-            value={formData.thirdChoice}
-            onChange={handleChange}
-            required
-            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
-          />
-        </div>
+              <div class="form-group">
+                <label class="req">2순위 희망일시</label>
+                <input type="text" name="secondChoice" placeholder="예: 2026-09-15 14:00~16:00" value={formData.secondChoice} onChange={handleChange} required />
+              </div>
 
-        {/* 신청자 성명 (필수) */}
-        <div>
-          <label className="block font-medium text-slate-700 mb-1">
-            신청자 성명 <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="name"
-            placeholder="홍길동"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
-          />
-        </div>
+              <div class="form-group">
+                <label class="req">3순위 희망일시</label>
+                <input type="text" name="thirdChoice" placeholder="예: 2026-09-16 10:00~12:00" value={formData.thirdChoice} onChange={handleChange} required />
+              </div>
 
-        {/* 비밀번호 (필수) */}
-        <div>
-          <label className="block font-medium text-slate-700 mb-1">
-            비밀번호 (조회/수정용 4자리) <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="password"
-            name="password"
-            maxLength="4"
-            placeholder="숫자 4자리"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400"
-          />
-        </div>
+              <div class="form-row">
+                <div class="form-group" style={{ flex: 1 }}>
+                  <label class="req">신청자 성명</label>
+                  <input type="text" name="name" placeholder="홍길동" value={formData.name} onChange={handleChange} required />
+                </div>
+                <div class="form-group" style={{ flex: 1 }}>
+                  <label class="req">비밀번호 (4자리)</label>
+                  <input type="password" name="password" placeholder="****" value={formData.password} onChange={handleChange} required />
+                </div>
+              </div>
 
-        {/* 비고 / 요청사항 (선택) */}
-        <div>
-          <label className="block font-medium text-slate-700 mb-1">
-            비고 / 요청사항
-          </label>
-          <textarea
-            name="notes"
-            rows="3"
-            placeholder="요청사항을 입력하세요."
-            value={formData.notes}
-            onChange={handleChange}
-            className="w-full px-3.5 py-2.5 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-slate-400 resize-none"
-          />
-        </div>
+              <div class="form-group">
+                <label>비고 / 요청사항</label>
+                <textarea name="notes" rows="3" placeholder="특이사항을 입력해주세요." value={formData.notes} onChange={handleChange}></textarea>
+              </div>
 
-        <button
-          type="submit"
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg shadow-sm hover:shadow transition-all mt-2"
-        >
-          신청하기
-        </button>
-      </form>
-    </div>
-  );
-}
+              <div class="form-btns">
+                <button type="submit" class="btn btn-primary" style={{ flex: 1 }}>신청 제출하기</button>
+                <button type="button" class="btn btn-danger" onClick={handleReset}>초기화</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(<App />);
+</script>
+
+</body>
+</html>

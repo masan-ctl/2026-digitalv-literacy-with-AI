@@ -218,7 +218,6 @@
 
         <div class="form-btns">
           <button type="submit" class="btn btn-primary" id="submitBtn" style="flex:1;">신청 제출하기</button>
-          <button type="button" class="btn btn-danger" onclick="handleFormDelete()">삭제</button>
         </div>
       </form>
     </div>
@@ -246,7 +245,8 @@
 </div>
 
 <script>
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlZPvFcEpgHEp0OYTihnJLzThuGdGklDCJw0ZOt2NmzgZZahbrSUCZz56c8zfgMMydRg/exec";
+  // 업데이트된 구글 앱스클립트 배포 URL
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhxjm5SveV6eiNrRHe39whh8hmI6ZnSIF8GONdSQrsO8WzYqKQYuvIazQypd_Z7F_uPw/exec";
 
   let savedConfig = JSON.parse(localStorage.getItem("ai_config_v20") || "{}");
   let config = Object.assign({
@@ -272,13 +272,14 @@
   let currentYear = 2026;
   let currentMonth = 8; // 8 = 9월
   let isAdminLoggedIn = false;
-  let editingId = null;
   let applications = [];
 
+  // 문자열 정규화 (공백, 콜론, 하이픈 등 특수문자 제거하여 비교 키 생성)
   function normalizeStr(str) {
     return String(str || '').replace(/[\s\:\-\~\._]/g, '');
   }
 
+  // 서버 데이터 가져오기 및 완벽한 표준화 처리
   async function fetchServerData(showLoading = false) {
     if (!GOOGLE_SCRIPT_URL) {
       renderCalendar();
@@ -295,45 +296,43 @@
       
       if (Array.isArray(data)) {
         applications = data.map(app => {
-          let rawDate = String(app["1순위 희망일"] || app.date || '').trim();
+          let rawDate = String(app.date || app["1순위 희망일"] || '').trim();
           if (rawDate.includes("T")) rawDate = rawDate.split("T")[0];
           
           let cleanDate = rawDate.replace(/[\.\/]/g, '-').replace(/\s+/g, '');
-          const parts = cleanDate.split('-').filter(p => p.length > 0);
+          const parts = cleanDate.match(/\d+/g);
           
-          if (parts.length === 3) {
+          if (parts && parts.length >= 3) {
             const y = parts[0];
-            const m = parts[1].padStart(2, '0');
-            const d = parts[2].padStart(2, '0');
+            const m = parts[1].length === 1 ? '0' + parts[1] : parts[1];
+            const d = parts[2].length === 1 ? '0' + parts[2] : parts[2];
             cleanDate = `${y}-${m}-${d}`;
           }
 
-          const rawTime = String(app["1순위 시간"] || app.time || '').trim();
-          const rawRoom = String(app["강의실"] || app.room || '').trim();
-          const rawCount = app["신청인원"] !== undefined ? app["신청인원"] : app.count;
+          const rawTime = String(app.time || app["1순위 시간"] || '').trim();
+          const rawRoom = String(app.room || app["강의실"] || '').trim();
+          const rawCount = app.count !== undefined ? app.count : app["신청인원"];
           const parsedCount = parseInt(rawCount, 10);
 
           return {
             ...app,
-            id: String(app.id || app["ID"] || app["타임스탬프"] || Date.now()),
             date: cleanDate,
             time: rawTime,
             room: rawRoom,
             count: isNaN(parsedCount) ? 0 : parsedCount,
-            dept: String(app["학과명"] || app.dept || '').trim(),
-            className: String(app["분반명"] || app.className || '').trim(),
-            priority2: String(app["2순위 가능 일시"] || app.priority2 || '').trim(),
-            priority3: String(app["3순위 가능 일시"] || app.priority3 || '').trim(),
-            note: String(app["특이사항"] || app.note || '').trim(),
-            name: String(app["신청자 이름"] || app.name || '').trim(),
-            pw: String(app["비밀번호"] || app.pw || '').trim()
+            dept: String(app.dept || app["학과명"] || '').trim(),
+            className: String(app.className || app["분반명"] || '').trim(),
+            name: String(app.name || app["신청자 이름"] || '').trim(),
+            pw: String(app.pw || app["비밀번호"] || '').replace(/^'/, '').trim()
           };
         });
       } else {
         applications = [];
       }
+      
+      console.log("서버 동기화 성공:", applications);
     } catch (err) {
-      console.error("데이터 로딩 실패:", err);
+      console.error("데이터 불러오기 오류:", err);
     } finally {
       if (showLoading) {
         document.getElementById("loadingOverlay").style.display = "none";
@@ -383,11 +382,12 @@
     config.maxTotal = parseInt(document.getElementById("cfgMaxTotal").value) || 0;
 
     localStorage.setItem("ai_config_v20", JSON.stringify(config));
-    alert("관리자 설정이 저장되었습니다.");
+    alert("관리자 설정이 적용되었습니다.");
     resetForm();
     renderCalendar();
   }
 
+  // 지정 일시 및 강의실별 인원 집계
   function getSlotStats(dateStr, timeStr) {
     const targetNormTime = normalizeStr(timeStr);
 
@@ -404,6 +404,7 @@
     return { room1Count, room2Count, totalCount, list };
   }
 
+  // 달력 그리기
   function renderCalendar() {
     const grid = document.getElementById("calendarGrid");
     grid.innerHTML = "";
@@ -437,7 +438,7 @@
       const dayObj = new Date(currentYear, currentMonth, date);
       const dayOfWeek = dayObj.getDay();
 
-      if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+      if (dayOfWeek === 0 || dayOfWeek === 6) continue; // 주말 제어
 
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
       const holidayInfo = HOLIDAYS[dateStr];
@@ -527,43 +528,16 @@
     box.style.display = "block";
     textEl.innerText = `📌 [${date} ${time}] 접수 건수: 총 ${stats.list.length}건`;
 
-    selectEl.innerHTML = `<option value="">-- [${date}] 접수된 내역 선택 수정 --</option>`;
+    selectEl.innerHTML = `<option value="">-- [${date}] 접수된 내역 선택 --</option>`;
     stats.list.forEach(app => {
       const opt = document.createElement("option");
-      opt.value = app.id;
+      opt.value = app.id || app.name;
       opt.innerText = `[${app.room}] ${app.dept} / ${app.name} (${app.count}명)`;
       selectEl.appendChild(opt);
     });
   }
 
-  function loadSelectedSlotApp(appId) {
-    if (!appId) return;
-    const target = applications.find(a => String(a.id) === String(appId));
-    if (target) populateFormForEdit(target);
-  }
-
-  function populateFormForEdit(app) {
-    editingId = app.id;
-    document.getElementById("formTitle").innerText = "✏️ 프로그램 신청 수정";
-    document.getElementById("submitBtn").innerText = "신청 수정하기";
-
-    document.getElementById("appDate").value = app.date;
-    document.getElementById("appTime").value = app.time;
-    document.getElementById("appRoom").value = app.room;
-    document.getElementById("appCount").value = app.count;
-    document.getElementById("appDept").value = app.dept;
-    document.getElementById("appClass").value = app.className;
-    document.getElementById("appPriority2").value = app.priority2;
-    document.getElementById("appPriority3").value = app.priority3;
-    document.getElementById("appNote").value = app.note;
-    document.getElementById("appName").value = app.name;
-    document.getElementById("appPw").value = app.pw;
-
-    document.getElementById("applyForm").scrollIntoView({ behavior: 'smooth' });
-  }
-
   function resetForm() {
-    editingId = null;
     document.getElementById("formTitle").innerText = "📝 프로그램 신청";
     document.getElementById("submitBtn").innerText = "신청 제출하기";
     document.getElementById("applyForm").reset();
@@ -571,6 +545,7 @@
     document.getElementById("slotInfoBox").style.display = "none";
   }
 
+  // 폼 제출 함수
   async function handleApplySubmit(e) {
     e.preventDefault();
 
@@ -591,57 +566,21 @@
       return;
     }
 
-    const payload = {
-      action: editingId ? "UPDATE" : "CREATE",
-      id: editingId || Date.now().toString(),
-      date, time, room, count, dept, className, priority2, priority3, note, name, pw
-    };
+    const formData = { date, time, room, count, dept, className, priority2, priority3, note, name, pw };
 
     document.getElementById("loadingOverlay").style.display = "flex";
     try {
       await fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(formData),
         redirect: "follow"
       });
-      alert(editingId ? "신청 내역이 수정되었습니다!" : "신청이 접수되었습니다!");
+      alert("신청이 접수되었습니다!");
       resetForm();
       setTimeout(() => fetchServerData(false), 1500);
     } catch (err) {
-      alert("처리 중 오류가 발생했습니다.");
-      console.error(err);
-    } finally {
-      document.getElementById("loadingOverlay").style.display = "none";
-    }
-  }
-
-  async function handleFormDelete() {
-    if (!editingId) {
-      alert("삭제할 신청 내역을 먼저선택해주세요. (내 신청 조회 또는 관리자 선택)");
-      return;
-    }
-
-    if (!confirm("정말로 이 신청 내역을 삭제하시겠습니까?")) return;
-
-    const payload = {
-      action: "DELETE",
-      id: editingId
-    };
-
-    document.getElementById("loadingOverlay").style.display = "flex";
-    try {
-      await fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload),
-        redirect: "follow"
-      });
-      alert("신청 내역이 삭제되었습니다.");
-      resetForm();
-      setTimeout(() => fetchServerData(false), 1500);
-    } catch (err) {
-      alert("삭제 중 오류가 발생했습니다.");
+      alert("제출 중 오류가 발생했습니다.");
       console.error(err);
     } finally {
       document.getElementById("loadingOverlay").style.display = "none";
@@ -673,13 +612,8 @@
     myApps.forEach(app => {
       const item = document.createElement("div");
       item.className = "my-item";
-      item.style.cursor = "pointer";
-      item.onclick = () => {
-        closeModal("myListModal");
-        populateFormForEdit(app);
-      };
       item.innerHTML = `
-        <div style="font-weight:bold; color:var(--primary-color);">1순위: ${app.date} [${app.time}] (${app.room}) ✏️클릭시 수정</div>
+        <div style="font-weight:bold; color:var(--primary-color);">1순위: ${app.date} [${app.time}] (${app.room})</div>
         <div>학과/분반: ${app.dept} / ${app.className || '미입력'} (${app.count}명)</div>
         <div>2순위: ${app.priority2 || '-'} | 3순위: ${app.priority3 || '-'}</div>
       `;
@@ -693,9 +627,7 @@
     applications.forEach(app => {
       const item = document.createElement("div");
       item.className = "admin-app-item";
-      item.style.cursor = "pointer";
-      item.onclick = () => populateFormForEdit(app);
-      item.innerHTML = `<div><strong>${app.date} [${app.time}]</strong> - ${app.dept} (${app.name}, ${app.count}명) | ${app.room} ✏️</div>`;
+      item.innerHTML = `<div><strong>${app.date} [${app.time}]</strong> - ${app.dept} (${app.name}, ${app.count}명) | ${app.room}</div>`;
       listEl.appendChild(item);
     });
   }

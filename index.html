@@ -316,8 +316,8 @@
 </div>
 
 <script>
-  // 최신 구글 앱스크립트 웹 앱 URL
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzApfNivHOjULaefgehpji8m7GZKFWRczRPlYqMuEMG6faFieII1cKxdYkZdVQfBxcK/exec";
+  // 새롭게 배포하신 최신 구글 앱스크립트 Web App URL 적용
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzbR7qvFmcn7wjkJxVbUzuW5k444vBLVON8b9Vqa6Ord8O9gIXpRB65y0W-FzLwwyBDag/exec";
 
   let savedConfig = JSON.parse(localStorage.getItem("ai_config_v20") || "{}");
   let config = Object.assign({
@@ -354,6 +354,7 @@
     renderCalendar();
   }
 
+  // 서버로부터 데이터 수신 및 달력/목록 갱신
   async function fetchServerData(showLoading = false) {
     if (!GOOGLE_SCRIPT_URL) { renderCalendar(); return; }
     if (showLoading) document.getElementById("loadingOverlay").style.display = "flex";
@@ -364,7 +365,7 @@
       
       if (Array.isArray(data)) {
         applications = data.map((app, index) => {
-          let rawDate = String(app.date || app["1순위 희망일"] || '').trim();
+          let rawDate = String(app.date || app["1순위 희망일"] || app["날짜"] || '').trim();
           if (rawDate.includes("T")) rawDate = rawDate.split("T")[0];
           let cleanDate = rawDate.replace(/[\.\/]/g, '-').replace(/\s+/g, '');
           const parts = cleanDate.match(/\d+/g);
@@ -373,7 +374,6 @@
           }
 
           let roomVal = String(app.room || app["강의실"] || '').trim();
-          // 기존 데이터 호환성 유지 (강1/강2 -> 강의실1/강의실2 변환)
           if (roomVal === "강1") roomVal = "강의실1";
           if (roomVal === "강2") roomVal = "강의실2";
 
@@ -383,13 +383,13 @@
             date: cleanDate,
             time: String(app.time || app["1순위 시간"] || '').trim(),
             room: roomVal,
-            count: parseInt(app.count || app["신청인원"]) || 0,
-            dept: String(app.dept || app["학과명"] || '').trim(),
-            className: String(app.className || app["분반명"] || '').trim(),
+            count: parseInt(app.count || app["신청인원"] || app["인원"]) || 0,
+            dept: String(app.dept || app["학과명"] || app["학과"] || '').trim(),
+            className: String(app.className || app["분반명"] || app["분반"] || '').trim(),
             priority2: String(app.priority2 || app["2순위 가능 일시"] || '').trim(),
             priority3: String(app.priority3 || app["3순위 가능 일시"] || '').trim(),
             note: String(app.note || app["특이사항"] || '').trim(),
-            name: String(app.name || app["신청자 이름"] || '').trim(),
+            name: String(app.name || app["신청자 이름"] || app["이름"] || '').trim(),
             pw: String(app.pw || app["비밀번호"] || '').replace(/^'/, '').trim()
           };
         });
@@ -419,7 +419,6 @@
         document.getElementById("adminListContainer").style.display = "block";
         document.getElementById("adminToggleBtn").innerText = "관리자 로그아웃";
         
-        // 폼 필드 기본값 설정
         document.getElementById("cfgStartDate").value = config.startDate;
         document.getElementById("cfgEndDate").value = config.endDate;
         document.getElementById("cfgMaxRoom1").value = config.maxRoom1;
@@ -625,8 +624,8 @@
       });
       alert(successMsg);
       resetForm();
-      // 등록/수정/삭제 처리 완료 후 바로 최신 데이터 재조회 -> 달력 자동 갱신 연동
-      setTimeout(() => fetchServerData(true), 1200);
+      // 요청 전송 완료 후 서버 데이터를 재조회하여 즉시 달력에 반영
+      setTimeout(() => fetchServerData(true), 1500);
     } catch (err) {
       alert("처리 중 오류가 발생했습니다.");
       console.error(err);
@@ -677,8 +676,14 @@
   function prevMonth() { currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } renderCalendar(); }
   function nextMonth() { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } renderCalendar(); }
 
+  // 초기화 및 데이터 로딩 실행
   resetForm();
   fetchServerData(true);
+
+  // 다른 사용자/컴퓨터에서 신청한 변경사항을 실시간 반영하기 위해 15초마다 주기적 동기화 실행
+  setInterval(() => {
+    fetchServerData(false);
+  }, 15000);
 </script>
 
 </body>

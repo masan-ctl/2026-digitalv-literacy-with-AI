@@ -38,12 +38,13 @@
     .calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
     .day-header { text-align: center; font-weight: bold; padding: 8px; background: #f1f5f9; border-radius: 6px; color: #475569; font-size: 0.85rem; }
     
-    .day-cell { background: white; border: 1px solid var(--border-color); border-radius: 6px; min-height: 155px; padding: 8px; display: flex; flex-direction: column; opacity: 1 !important; }
+    .day-cell { background: white; border: 1px solid var(--border-color); border-radius: 6px; min-height: 155px; padding: 8px; display: flex; flex-direction: column; }
     .day-cell.empty-cell { background: transparent; border: none; }
     .day-cell.chuseok-cell { background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border: 1px solid #fed7aa; }
     .day-cell.holiday-cell { background: linear-gradient(135deg, #fef2f2 0%, #ffe4e6 100%); border: 1px solid #fecdd3; }
+    .day-cell.out-of-period-cell { background: #f8fafc; color: #94a3b8; }
     
-    .date-number { font-weight: bold; font-size: 0.88rem; margin-bottom: 6px; color: #1e293b; display: flex; justify-content: space-between; align-items: center; opacity: 1 !important; }
+    .date-number { font-weight: bold; font-size: 0.88rem; margin-bottom: 6px; color: #1e293b; display: flex; justify-content: space-between; align-items: center; }
     .chuseok-tag { font-size: 0.72rem; color: #c2410c; background: #ffedd5; border: 1px solid #fdba74; padding: 2px 6px; border-radius: 12px; font-weight: bold; }
     .holiday-tag { font-size: 0.72rem; color: var(--danger-color); background: #ffe4e6; border: 1px solid #fca5a5; padding: 2px 6px; border-radius: 12px; font-weight: bold; }
 
@@ -54,10 +55,8 @@
     .holiday-banner-box.red-text .title { color: #991b1b; }
     .holiday-banner-box .desc { font-size: 0.72rem; color: #ea580c; margin-top: 2px; }
 
-    .slot-item { font-size: 0.75rem; padding: 6px 8px; margin-bottom: 6px; border-radius: 5px; background: #f8fafc; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; opacity: 1 !important; }
+    .slot-item { font-size: 0.75rem; padding: 6px 8px; margin-bottom: 6px; border-radius: 5px; background: #f8fafc; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; }
     .slot-item:hover { background: #eff6ff; border-color: #bfdbfe; }
-    .slot-item.out-of-period { cursor: not-allowed; background: #f1f5f9; }
-    .slot-item.out-of-period:hover { background: #f1f5f9; border-color: #e2e8f0; }
 
     .slot-title { font-weight: bold; color: #1e293b; margin-bottom: 4px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; }
     .room-line { display: flex; justify-content: space-between; margin-top: 2px; font-size: 0.7rem; }
@@ -382,12 +381,14 @@
 
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
       const holidayInfo = HOLIDAYS[dateStr];
+      const isWithinPeriod = dateStr >= config.startDate && dateStr <= config.endDate;
 
       const cell = document.createElement("div");
-      const isWithinPeriod = dateStr >= config.startDate && dateStr <= config.endDate;
 
       if (holidayInfo) {
         cell.className = holidayInfo.type === "chuseok" ? "day-cell chuseok-cell" : "day-cell holiday-cell";
+      } else if (!isWithinPeriod) {
+        cell.className = "day-cell out-of-period-cell";
       } else {
         cell.className = "day-cell";
       }
@@ -408,23 +409,18 @@
         bannerBox.className = `holiday-banner-box ${holidayInfo.type !== "chuseok" ? 'red-border red-text' : ''}`;
         bannerBox.innerHTML = `<div class="icon">${holidayInfo.icon}</div><div class="title">${holidayInfo.name}</div><div class="desc">${holidayInfo.desc}</div>`;
         cell.appendChild(bannerBox);
-      } else {
+      } else if (isWithinPeriod) {
+        // 운영 기간 내(9/14~)에만 강의실 현황 슬롯 버튼 표시
         TIME_SLOTS.forEach(time => {
           const stats = getSlotStats(dateStr, time);
           const isThursday = (dayOfWeek === 4);
 
-          const isRoom1Closed = !isWithinPeriod || stats.room1Count >= config.maxRoom1 || stats.totalCount >= config.maxTotal;
-          const isRoom2Closed = !isWithinPeriod || isThursday || stats.room2Count >= config.maxRoom2 || stats.totalCount >= config.maxTotal;
+          const isRoom1Closed = stats.room1Count >= config.maxRoom1 || stats.totalCount >= config.maxTotal;
+          const isRoom2Closed = isThursday || stats.room2Count >= config.maxRoom2 || stats.totalCount >= config.maxTotal;
 
           const slotEl = document.createElement("div");
-          
-          if (isWithinPeriod) {
-            slotEl.className = "slot-item";
-            slotEl.onclick = () => selectSlotForForm(dateStr, time);
-          } else {
-            // 운영 기간 바깥인 경우 투명도 감쇄 없이 일반 마감 상태 스타일 적용
-            slotEl.className = "slot-item out-of-period";
-          }
+          slotEl.className = "slot-item";
+          slotEl.onclick = () => selectSlotForForm(dateStr, time);
 
           slotEl.innerHTML = `
             <div class="slot-title">${time}</div>

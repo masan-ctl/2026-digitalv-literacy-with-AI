@@ -1,277 +1,4 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <title>2026 디지털 리터러시 with AI 신청(09~11월 운영) 🤖</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    :root { --primary-color: #2563eb; --danger-color: #dc2626; --gray-bg: #f8fafc; --border-color: #e2e8f0; --success-color: #16a34a; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 20px; background-color: #f1f5f9; color: #1e293b; }
-    .container { max-width: 1400px; margin: 0 auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; }
-    h1 { margin: 0; font-size: 1.4rem; color: #0f172a; }
-    .top-btns { display: flex; gap: 8px; }
-    .btn { padding: 8px 14px; border: none; border-radius: 6px; font-size: 0.85rem; cursor: pointer; font-weight: 600; }
-    .btn-primary { background: var(--primary-color); color: white; }
-    .btn-admin { background: #475569; color: white; }
-    .btn-excel { background: #16a34a; color: white; }
-    .btn-secondary { background: #94a3b8; color: white; }
-    .btn-danger { background: #dc2626; color: white; }
-    .btn-save { background: #2563eb; color: white; }
-
-    .notice-banner { background: #fffbebfb; border: 1px solid #fef3c7; border-left: 5px solid #f59e0b; padding: 12px 16px; border-radius: 6px; margin-bottom: 20px; font-size: 0.88rem; color: #92400e; line-height: 1.7; }
-    .notice-banner div { margin-bottom: 2px; }
-
-    .admin-panel { background: #f8fafc; border: 1px solid #cbd5e1; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: none; }
-    .admin-panel h3 { margin-top: 0; margin-bottom: 12px; font-size: 1rem; color: #334155; }
-    .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 12px; }
-    .admin-grid label { display: block; font-size: 0.78rem; font-weight: bold; margin-bottom: 4px; color: #475569; }
-    .admin-grid input { width: 100%; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-size: 0.85rem; }
-    .admin-action-bar { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 10px; }
-
-    .main-layout { display: flex; gap: 20px; align-items: flex-start; }
-    .calendar-section { flex: 2.4; min-width: 0; }
-    .form-section { flex: 1; background: #f8fafc; border: 1px solid var(--border-color); padding: 18px; border-radius: 10px; position: sticky; top: 20px; }
-    .form-section h3 { margin-top: 0; margin-bottom: 12px; font-size: 1.05rem; color: #0f172a; border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; }
-
-    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-    .day-header { text-align: center; font-weight: bold; padding: 8px; background: #f1f5f9; border-radius: 6px; color: #475569; font-size: 0.85rem; }
-    
-    .day-cell { background: white; border: 1px solid var(--border-color); border-radius: 6px; min-height: 155px; padding: 8px; display: flex; flex-direction: column; }
-    .day-cell.empty-cell { background: transparent; border: none; }
-    .day-cell.chuseok-cell { background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border: 1px solid #fed7aa; }
-    .day-cell.holiday-cell { background: linear-gradient(135deg, #fef2f2 0%, #ffe4e6 100%); border: 1px solid #fecdd3; }
-    .day-cell.out-of-period-cell { background: #f8fafc; color: #94a3b8; }
-    
-    .date-number { font-weight: bold; font-size: 0.88rem; margin-bottom: 6px; color: #1e293b; display: flex; justify-content: space-between; align-items: center; }
-    .chuseok-tag { font-size: 0.72rem; color: #c2410c; background: #ffedd5; border: 1px solid #fdba74; padding: 2px 6px; border-radius: 12px; font-weight: bold; }
-    .holiday-tag { font-size: 0.72rem; color: var(--danger-color); background: #ffe4e6; border: 1px solid #fca5a5; padding: 2px 6px; border-radius: 12px; font-weight: bold; }
-
-    .holiday-banner-box { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: rgba(255, 255, 255, 0.75); border-radius: 8px; margin-top: 4px; padding: 10px 5px; border: 1px dashed #fdba74; }
-    .holiday-banner-box.red-border { border-color: #fca5a5; }
-    .holiday-banner-box .icon { font-size: 1.6rem; margin-bottom: 4px; }
-    .holiday-banner-box .title { font-weight: bold; font-size: 0.82rem; color: #9a3412; }
-    .holiday-banner-box.red-text .title { color: #991b1b; }
-    .holiday-banner-box .desc { font-size: 0.72rem; color: #ea580c; margin-top: 2px; }
-
-    .slot-item { font-size: 0.75rem; padding: 6px 8px; margin-bottom: 6px; border-radius: 5px; background: #f8fafc; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; }
-    .slot-item:hover { background: #eff6ff; border-color: #bfdbfe; }
-
-    .slot-title { font-weight: bold; color: #1e293b; margin-bottom: 4px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; }
-    .room-line { display: flex; justify-content: space-between; margin-top: 2px; font-size: 0.7rem; }
-    .status-ok { color: var(--success-color); font-weight: 600; }
-    .status-no { color: var(--danger-color); font-weight: 600; }
-
-    .form-group { margin-bottom: 10px; }
-    .form-group label { display: block; font-size: 0.78rem; font-weight: 600; margin-bottom: 3px; color: #475569; }
-    .form-group label.req::after { content: " *"; color: var(--danger-color); }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 6px 8px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 5px; font-size: 0.82rem; font-family: inherit; }
-    .form-row { display: flex; gap: 6px; }
-    .form-btns { display: flex; gap: 6px; margin-top: 12px; }
-
-    .slot-info-box { background: #e0f2fe; border: 1px solid #7dd3fc; border-radius: 6px; padding: 8px 12px; margin-bottom: 12px; font-size: 0.8rem; display: none; }
-    .slot-info-box select { margin-top: 4px; font-size: 0.78rem; padding: 4px; border-radius: 4px; border: 1px solid #38bdf8; width: 100%; }
-
-    .admin-list-container { margin-top: 20px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; display: none; }
-    .admin-list-container h4 { margin: 0 0 10px 0; font-size: 0.9rem; color: #334155; }
-    .admin-app-item { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; font-size: 0.78rem; display: flex; justify-content: space-between; align-items: center; }
-
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: white; padding: 20px; border-radius: 10px; width: 420px; max-width: 90%; }
-    .my-list { max-height: 300px; overflow-y: auto; margin-bottom: 15px; }
-    .my-item { border: 1px solid var(--border-color); padding: 10px; border-radius: 6px; margin-bottom: 8px; background: var(--gray-bg); font-size: 0.82rem; }
-    
-    .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); justify-content: center; align-items: center; z-index: 2000; font-weight: bold; color: var(--primary-color); }
-  </style>
-</head>
-<body>
-
-<div class="loading-overlay" id="loadingOverlay">⏳ 서버에서 최신 신청 데이터를 불러오는 중...</div>
-
-<div class="container">
-  <div class="header-area">
-    <h1>&lt;2026 디지털 리터러시 with AI 신청(09~11월 운영) 🤖&gt;</h1>
-    <div class="top-btns">
-      <button class="btn btn-secondary" onclick="fetchServerData(true)">🔄 새로고침</button>
-      <button class="btn btn-primary" onclick="openMyAuthModal()">내 신청 조회/수정</button>
-      <button class="btn btn-admin" id="adminToggleBtn" onclick="toggleAdminAuth()">관리자 로그인</button>
-    </div>
-  </div>
-
-  <div class="notice-banner">
-    <div>※ 분반별 1번 2시간 진행됩니다.</div>
-    <div>※ 동시간대 2분반 진행 가능합니다. (단, 목요일은 강의실1만 운영)</div>
-    <div>※ 강의실별 최대 40명까지 신청 가능합니다.(일부 초과 인원은 조정 가능)</div>
-    <div>※ 자기 탐색 시간(진로 설계 시간) 활용 가능합니다.</div>
-    <div>※ 이러닝 주간은 피해서 신청해 주시기 바랍니다.</div>
-    <div>※ 추석 연휴 및 공휴일(10/5 대체공휴일, 10/9 한글날)은 휴무로 신청할 수 없습니다.</div>
-    <div>※ 상황에 따라 신청일이 조정될 수 있습니다.</div>
-  </div>
-
-  <div class="admin-panel" id="adminPanel">
-    <h3>⚙️ 관리자 설정</h3>
-    <div class="admin-grid">
-      <div><label>운영 시작일</label><input type="date" id="cfgStartDate" value="2026-09-14"></div>
-      <div><label>운영 종료일</label><input type="date" id="cfgEndDate" value="2026-11-14"></div>
-      <div><label>기본 분반 이름</label><input type="text" id="cfgClassName" value="A분반"></div>
-      <div><label>강의실1 최대인원</label><input type="number" id="cfgMaxRoom1" value="40"></div>
-      <div><label>강의실2 최대인원</label><input type="number" id="cfgMaxRoom2" value="40"></div>
-      <div><label>동시간대 통합 최대인원</label><input type="number" id="cfgMaxTotal" value="80"></div>
-    </div>
-    <div class="admin-action-bar">
-      <button class="btn btn-save" onclick="saveAdminConfig()">💾 설정 저장 적용</button>
-      <button class="btn btn-excel" onclick="downloadExcel()">📊 전체 신청 내역 엑셀 다운로드</button>
-    </div>
-  </div>
-
-  <div class="main-layout">
-    <div class="calendar-section">
-      <div class="calendar-header">
-        <button class="btn btn-secondary" onclick="prevMonth()">&lt; 이전달</button>
-        <h2 id="monthTitle" style="margin:0; font-size: 1.1rem;"></h2>
-        <button class="btn btn-secondary" onclick="nextMonth()">다음달 &gt;</button>
-      </div>
-      <div class="calendar-grid" id="calendarGrid"></div>
-
-      <div class="admin-list-container" id="adminListContainer">
-        <h4>📋 전체 신청 내역 (관리자 전용)</h4>
-        <div id="adminAppList"></div>
-      </div>
-    </div>
-
-    <div class="form-section">
-      <h3 id="formTitle">📝 프로그램 신청</h3>
-      
-      <div class="slot-info-box" id="slotInfoBox">
-        <div id="slotInfoText">📌 선택 일시 신청 건 수: 0건</div>
-        <select id="slotAppSelect" onchange="loadSelectedSlotApp(this.value)">
-          <option value="">-- 기존 신청 내역 선택 수정 --</option>
-        </select>
-      </div>
-
-      <form id="applyForm" onsubmit="handleApplySubmit(event)">
-        <div class="form-row">
-          <div class="form-group" style="flex:1;">
-            <label class="req">1순위 날짜</label>
-            <input type="date" id="appDate" required onchange="onDateOrTimeChange()">
-          </div>
-          <div class="form-group" style="flex:1;">
-            <label class="req">1순위 시간</label>
-            <select id="appTime" required onchange="onDateOrTimeChange()">
-              <option value="10:00~12:00">10:00~12:00</option>
-              <option value="14:00~16:00">14:00~16:00</option>
-              <option value="16:00~18:00">16:00~18:00</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group" style="flex:1;">
-            <label class="req">강의실 선택</label>
-            <select id="appRoom" required>
-              <option value="강의실1">강의실1</option>
-              <option value="강의실2">강의실2</option>
-            </select>
-          </div>
-          <div class="form-group" style="flex:1;">
-            <label class="req">신청 인원</label>
-            <input type="number" id="appCount" min="1" max="40" value="1" required>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group" style="flex:1;">
-            <label class="req">학과명</label>
-            <input type="text" id="appDept" placeholder="예: 간호학과" required>
-          </div>
-          <div class="form-group" style="flex:1;">
-            <label>분반명</label>
-            <input type="text" id="appClass" placeholder="예: A분반">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="req">2순위 가능 일시</label>
-          <input type="text" id="appPriority2" placeholder="예: 2026-09-15 14:00~16:00" required>
-        </div>
-        <div class="form-group">
-          <label class="req">3순위 가능 일시</label>
-          <input type="text" id="appPriority3" placeholder="예: 2026-09-16 10:00~12:00" required>
-        </div>
-
-        <div class="form-group">
-          <label>특이사항</label>
-          <textarea id="appNote" rows="2" placeholder="예: 매주 화요일 14시 가능, 외국인 학생들 다수 포함이라 진행 어려움이 예상됨"></textarea>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group" style="flex:1;">
-            <label class="req">신청자 이름</label>
-            <input type="text" id="appName" placeholder="예: 홍길동" required>
-          </div>
-          <div class="form-group" style="flex:1;">
-            <label class="req">비밀번호</label>
-            <input type="password" id="appPw" placeholder="예: 1234" required>
-          </div>
-        </div>
-
-        <div class="form-btns">
-          <button type="submit" class="btn btn-primary" id="submitBtn" style="flex:1;">신청 제출하기</button>
-          <button type="button" class="btn btn-danger" onclick="handleFormDelete()">삭제</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<div class="modal" id="myAuthModal">
-  <div class="modal-content">
-    <h3>내 신청 내역 조회</h3>
-    <div class="form-group"><label class="req">신청자 이름</label><input type="text" id="searchName" placeholder="예: 홍길동" required></div>
-    <div class="form-group"><label class="req">비밀번호</label><input type="password" id="searchPw" placeholder="비밀번호 입력" required></div>
-    <div class="form-btns">
-      <button type="button" class="btn btn-secondary" onclick="closeModal('myAuthModal')">닫기</button>
-      <button type="button" class="btn btn-primary" onclick="verifyAndShowMyList()">조회</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal" id="myListModal">
-  <div class="modal-content">
-    <h3>나의 신청 목록</h3>
-    <div class="my-list" id="myListContainer"></div>
-    <div style="text-align: right;"><button type="button" class="btn btn-secondary" onclick="closeModal('myListModal')">닫기</button></div>
-  </div>
-</div>
-
-<script>
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwt8vZLOqyQ_Zy-qwjpFfu8NZ3wBZuN_x4mqkeDn9DwUi8phVRQE7ARsfjyifu85xhBFw/exec";
-
-  let config = JSON.parse(localStorage.getItem("ai_config_v20") || JSON.stringify({
-    startDate: "2026-09-14",
-    endDate: "2026-11-14",
-    className: "",
-    maxRoom1: 40,
-    maxRoom2: 40,
-    maxTotal: 80
-  }));
-
-  const TIME_SLOTS = ["10:00~12:00", "14:00~16:00", "16:00~18:00"];
-  const HOLIDAYS = {
-    "2026-09-24": { name: "추석 연휴", type: "chuseok", icon: "🌕", desc: "추석 연휴 휴무" },
-    "2026-09-25": { name: "추석", type: "chuseok", icon: "🌕", desc: "추석 연휴 휴무" },
-    "2026-10-05": { name: "대체휴일", type: "holiday", icon: "🍂", desc: "개천절 대체공휴일 휴무" },
-    "2026-10-09": { name: "한글날", type: "holiday", icon: "🍂", desc: "한글날 공휴일 휴무" }
-  };
-
-  let currentYear = 2026;
-  let currentMonth = 8; // 8 = 9월
-  let isAdminLoggedIn = false;
-  let editingId = null;
-  let applications = [];
-
-  // showLoading: 수동 새로고침/최초접속 시에만 로딩 표시, 자동 백그라운드 동기화 시에는 끄기
+// 1. 서버 데이터 불러오기 함수 수정
   async function fetchServerData(showLoading = false) {
     if (!GOOGLE_SCRIPT_URL) {
       renderCalendar();
@@ -283,9 +10,11 @@
     }
 
     try {
-      const res = await fetch(GOOGLE_SCRIPT_URL);
+      // redirect: "follow" 추가하여 구글 앱스 스크립트 응답 정상 수신
+      const res = await fetch(GOOGLE_SCRIPT_URL, { redirect: "follow" });
       const data = await res.json();
       applications = Array.isArray(data) ? data : [];
+      console.log("불러온 신청 내역:", applications); // 브라우저 콘솔에서 확인 가능
     } catch (err) {
       console.error("데이터 로딩 실패:", err);
     } finally {
@@ -296,203 +25,24 @@
     }
   }
 
-  function toggleAdminAuth() {
-    if (isAdminLoggedIn) {
-      isAdminLoggedIn = false;
-      document.getElementById("adminPanel").style.display = "none";
-      document.getElementById("adminListContainer").style.display = "none";
-      document.getElementById("slotInfoBox").style.display = "none";
-      document.getElementById("adminToggleBtn").innerText = "관리자 로그인";
-    } else {
-      const pw = prompt("관리자 비밀번호를 입력하세요:");
-      if (pw === "1494") {
-        isAdminLoggedIn = true;
-        document.getElementById("adminPanel").style.display = "block";
-        document.getElementById("adminListContainer").style.display = "block";
-        document.getElementById("adminToggleBtn").innerText = "관리자 로그아웃";
-        loadConfigToInputs();
-        renderAdminAppList();
-        onDateOrTimeChange();
-      } else if (pw !== null) {
-        alert("비밀번호가 올바르지 않습니다.");
-      }
-    }
-  }
-
-  function loadConfigToInputs() {
-    document.getElementById("cfgStartDate").value = config.startDate;
-    document.getElementById("cfgEndDate").value = config.endDate;
-    document.getElementById("cfgClassName").value = config.className;
-    document.getElementById("cfgMaxRoom1").value = config.maxRoom1;
-    document.getElementById("cfgMaxRoom2").value = config.maxRoom2;
-    document.getElementById("cfgMaxTotal").value = config.maxTotal;
-  }
-
-  function saveAdminConfig() {
-    config.startDate = document.getElementById("cfgStartDate").value;
-    config.endDate = document.getElementById("cfgEndDate").value;
-    config.className = document.getElementById("cfgClassName").value;
-    config.maxRoom1 = parseInt(document.getElementById("cfgMaxRoom1").value) || 0;
-    config.maxRoom2 = parseInt(document.getElementById("cfgMaxRoom2").value) || 0;
-    config.maxTotal = parseInt(document.getElementById("cfgMaxTotal").value) || 0;
-
-    localStorage.setItem("ai_config_v20", JSON.stringify(config));
-    alert("관리자 설정이 저장되었습니다.");
-    resetForm();
-    renderCalendar();
-  }
-
+  // 2. 슬롯 계산 함수 비교 로직 강화
   function getSlotStats(dateStr, timeStr) {
-    const list = applications.filter(a => a.date === dateStr && a.time === timeStr);
-    const room1Count = list.filter(a => a.room === "강의실1").reduce((sum, a) => sum + Number(a.count), 0);
-    const room2Count = list.filter(a => a.room === "강의실2").reduce((sum, a) => sum + Number(a.count), 0);
+    // 공백 제거 및 텍스트 일치 여부 정확히 비교
+    const list = applications.filter(a => {
+      const aDate = String(a.date || '').trim();
+      const aTime = String(a.time || '').replace(/\s+/g, '');
+      const targetTime = String(timeStr || '').replace(/\s+/g, '');
+      return aDate === dateStr && aTime === targetTime;
+    });
+
+    const room1Count = list.filter(a => String(a.room).trim() === "강의실1").reduce((sum, a) => sum + Number(a.count || 0), 0);
+    const room2Count = list.filter(a => String(a.room).trim() === "강의실2").reduce((sum, a) => sum + Number(a.count || 0), 0);
     const totalCount = room1Count + room2Count;
 
     return { room1Count, room2Count, totalCount, list };
   }
 
-  function renderCalendar() {
-    const grid = document.getElementById("calendarGrid");
-    grid.innerHTML = "";
-
-    const days = ["월", "화", "수", "목", "금"];
-    days.forEach(d => {
-      const header = document.createElement("div");
-      header.className = "day-header";
-      header.innerText = d;
-      grid.appendChild(header);
-    });
-
-    document.getElementById("monthTitle").innerText = `${currentYear}년 ${currentMonth + 1}월`;
-
-    const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const firstDayObj = new Date(currentYear, currentMonth, 1);
-    const firstDayOfWeek = firstDayObj.getDay();
-
-    let offset = 0;
-    if (firstDayOfWeek >= 1 && firstDayOfWeek <= 5) {
-      offset = firstDayOfWeek - 1;
-    }
-
-    for (let i = 0; i < offset; i++) {
-      const emptyCell = document.createElement("div");
-      emptyCell.className = "day-cell empty-cell";
-      grid.appendChild(emptyCell);
-    }
-
-    for (let date = 1; date <= lastDate; date++) {
-      const dayObj = new Date(currentYear, currentMonth, date);
-      const dayOfWeek = dayObj.getDay();
-
-      if (dayOfWeek === 0 || dayOfWeek === 6) continue;
-
-      const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
-      const holidayInfo = HOLIDAYS[dateStr];
-      const isWithinPeriod = dateStr >= config.startDate && dateStr <= config.endDate;
-
-      const cell = document.createElement("div");
-
-      if (holidayInfo) {
-        cell.className = holidayInfo.type === "chuseok" ? "day-cell chuseok-cell" : "day-cell holiday-cell";
-      } else if (!isWithinPeriod) {
-        cell.className = "day-cell out-of-period-cell";
-      } else {
-        cell.className = "day-cell";
-      }
-
-      const dateNum = document.createElement("div");
-      dateNum.className = "date-number";
-
-      if (holidayInfo) {
-        const tagClass = holidayInfo.type === "chuseok" ? "chuseok-tag" : "holiday-tag";
-        dateNum.innerHTML = `<span>${date}일</span><span class="${tagClass}">${holidayInfo.name}</span>`;
-      } else {
-        dateNum.innerHTML = `<span>${date}일</span>`;
-      }
-      cell.appendChild(dateNum);
-
-      if (holidayInfo) {
-        const bannerBox = document.createElement("div");
-        bannerBox.className = `holiday-banner-box ${holidayInfo.type !== "chuseok" ? 'red-border red-text' : ''}`;
-        bannerBox.innerHTML = `<div class="icon">${holidayInfo.icon}</div><div class="title">${holidayInfo.name}</div><div class="desc">${holidayInfo.desc}</div>`;
-        cell.appendChild(bannerBox);
-      } else if (isWithinPeriod) {
-        // 운영 기간 내(9/14~)에만 강의실 현황 슬롯 버튼 표시
-        TIME_SLOTS.forEach(time => {
-          const stats = getSlotStats(dateStr, time);
-          const isThursday = (dayOfWeek === 4);
-
-          const isRoom1Closed = stats.room1Count >= config.maxRoom1 || stats.totalCount >= config.maxTotal;
-          const isRoom2Closed = isThursday || stats.room2Count >= config.maxRoom2 || stats.totalCount >= config.maxTotal;
-
-          const slotEl = document.createElement("div");
-          slotEl.className = "slot-item";
-          slotEl.onclick = () => selectSlotForForm(dateStr, time);
-
-          slotEl.innerHTML = `
-            <div class="slot-title">${time}</div>
-            <div class="room-line">
-              <span>강의실1 (${stats.room1Count}/${config.maxRoom1}명)</span>
-              <span class="${isRoom1Closed ? 'status-no' : 'status-ok'}">${isRoom1Closed ? '마감' : '가능'}</span>
-            </div>
-            <div class="room-line">
-              <span>강의실2 (${stats.room2Count}/${config.maxRoom2}명)</span>
-              <span class="${isRoom2Closed ? 'status-no' : 'status-ok'}">${isThursday ? '마감' : (isRoom2Closed ? '마감' : '가능')}</span>
-            </div>
-          `;
-          
-          cell.appendChild(slotEl);
-        });
-      }
-
-      grid.appendChild(cell);
-    }
-
-    if (isAdminLoggedIn) renderAdminAppList();
-  }
-
-  function selectSlotForForm(date, time) {
-    if (HOLIDAYS[date]) { alert("공휴일 및 연휴 기간은 신청할 수 없습니다."); return; }
-    document.getElementById("appDate").value = date;
-    document.getElementById("appTime").value = time;
-    updateSlotInfoBox(date, time);
-  }
-
-  function onDateOrTimeChange() {
-    const date = document.getElementById("appDate").value;
-    const time = document.getElementById("appTime").value;
-    if (date && time) updateSlotInfoBox(date, time);
-  }
-
-  function updateSlotInfoBox(date, time) {
-    const box = document.getElementById("slotInfoBox");
-    if (!isAdminLoggedIn) { box.style.display = "none"; return; }
-
-    const stats = getSlotStats(date, time);
-    const textEl = document.getElementById("slotInfoText");
-    const selectEl = document.getElementById("slotAppSelect");
-
-    box.style.display = "block";
-    textEl.innerText = `📌 [${date} ${time}] 접수 건수: 총 ${stats.list.length}건`;
-
-    selectEl.innerHTML = `<option value="">-- [${date}] 접수된 내역 선택 수정 --</option>`;
-    stats.list.forEach(app => {
-      const opt = document.createElement("option");
-      opt.value = app.id;
-      opt.innerText = `[${app.room}] ${app.dept} / ${app.name} (${app.count}명)`;
-      selectEl.appendChild(opt);
-    });
-  }
-
-  function resetForm() {
-    editingId = null;
-    document.getElementById("formTitle").innerText = "📝 프로그램 신청";
-    document.getElementById("submitBtn").innerText = "신청 제출하기";
-    document.getElementById("applyForm").reset();
-    document.getElementById("appDate").value = config.startDate;
-    document.getElementById("slotInfoBox").style.display = "none";
-  }
-
+  // 3. 신청서 제출 함수 수정
   async function handleApplySubmit(e) {
     e.preventDefault();
 
@@ -513,89 +63,24 @@
       return;
     }
 
-    const formData = { id: editingId || Date.now().toString(), date, time, room, count, dept, className, priority2, priority3, note, name, pw };
+    const formData = { id: Date.now().toString(), date, time, room, count, dept, className, priority2, priority3, note, name, pw };
 
     document.getElementById("loadingOverlay").style.display = "flex";
     try {
+      // text/plain 타입으로 전송하여 CORS Preflight 에러 방지
       await fetch(GOOGLE_SCRIPT_URL, {
         method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(formData),
+        redirect: "follow"
       });
       alert("신청이 접수되었습니다!");
       resetForm();
-      setTimeout(() => fetchServerData(false), 1000);
+      setTimeout(() => fetchServerData(false), 1500);
     } catch (err) {
       alert("제출 중 오류가 발생했습니다.");
+      console.error(err);
     } finally {
       document.getElementById("loadingOverlay").style.display = "none";
     }
   }
-
-  function openMyAuthModal() {
-    document.getElementById("searchName").value = "";
-    document.getElementById("searchPw").value = "";
-    document.getElementById("myAuthModal").style.display = "flex";
-  }
-
-  function closeModal(id) { document.getElementById(id).style.display = "none"; }
-
-  function verifyAndShowMyList() {
-    const name = document.getElementById("searchName").value.trim();
-    const pw = document.getElementById("searchPw").value.trim();
-    const myApps = applications.filter(a => a.name === name && String(a.pw) === pw);
-
-    if (myApps.length === 0) { alert("일치하는 신청 내역이 없습니다."); return; }
-    closeModal("myAuthModal");
-    renderMyList(myApps);
-    document.getElementById("myListModal").style.display = "flex";
-  }
-
-  function renderMyList(myApps) {
-    const container = document.getElementById("myListContainer");
-    container.innerHTML = "";
-    myApps.forEach(app => {
-      const item = document.createElement("div");
-      item.className = "my-item";
-      item.innerHTML = `
-        <div style="font-weight:bold; color:var(--primary-color);">1순위: ${app.date} [${app.time}] (${app.room})</div>
-        <div>학과/분반: ${app.dept} / ${app.className || '미입력'} (${app.count}명)</div>
-        <div>2순위: ${app.priority2 || '-'} | 3순위: ${app.priority3 || '-'}</div>
-      `;
-      container.appendChild(item);
-    });
-  }
-
-  function renderAdminAppList() {
-    const listEl = document.getElementById("adminAppList");
-    listEl.innerHTML = "";
-    applications.forEach(app => {
-      const item = document.createElement("div");
-      item.className = "admin-app-item";
-      item.innerHTML = `<div><strong>${app.date} [${app.time}]</strong> - ${app.dept} (${app.name}, ${app.count}명) | ${app.room}</div>`;
-      listEl.appendChild(item);
-    });
-  }
-
-  function downloadExcel() {
-    const worksheet = XLSX.utils.json_to_sheet(applications);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "신청내역");
-    XLSX.writeFile(workbook, `신청내역_${new Date().toISOString().slice(0,10)}.xlsx`);
-  }
-
-  function prevMonth() { currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } renderCalendar(); }
-  function nextMonth() { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } renderCalendar(); }
-
-  resetForm();
-  
-  // 최초 페이지 접속 시 로딩창과 함께 서버 데이터 로드
-  fetchServerData(true);
-
-  // 30초(30000ms)마다 백그라운드에서 실시간 동기화
-  setInterval(() => fetchServerData(false), 30000);
-</script>
-
-</body>
-</html>

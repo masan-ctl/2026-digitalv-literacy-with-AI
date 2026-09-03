@@ -246,7 +246,6 @@
 </div>
 
 <script>
-  // 최신 발급해주신 구글 앱스 스크립트 주소
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlZPvFcEpgHEp0OYTihnJLzThuGdGklDCJw0ZOt2NmzgZZahbrSUCZz56c8zfgMMydRg/exec";
 
   let savedConfig = JSON.parse(localStorage.getItem("ai_config_v20") || "{}");
@@ -276,6 +275,11 @@
   let editingId = null;
   let applications = [];
 
+  // 공백, 특수문자를 제거하여 강력한 비교 키 생성
+  function normalizeStr(str) {
+    return String(str || '').replace(/[\s\:\-\~\._]/g, '');
+  }
+
   // 1. 서버 데이터 불러오기 및 유연한 날짜/시간 정제 강화
   async function fetchServerData(showLoading = false) {
     if (!GOOGLE_SCRIPT_URL) {
@@ -293,13 +297,12 @@
       
       if (Array.isArray(data)) {
         applications = data.map(app => {
-          let cleanDate = String(app.date || '').trim();
-          if (cleanDate.includes("T")) cleanDate = cleanDate.split("T")[0]; // ISO 8601 대응
+          let rawDate = String(app.date || '').trim();
+          if (rawDate.includes("T")) rawDate = rawDate.split("T")[0];
           
-          // 점(.) 형태 등 특수문자 공통 구분자로 변경
-          cleanDate = cleanDate.replace(/[\.\/]/g, '-').replace(/\s+/g, '');
-          
+          let cleanDate = rawDate.replace(/[\.\/]/g, '-').replace(/\s+/g, '');
           const parts = cleanDate.split('-').filter(p => p.length > 0);
+          
           if (parts.length === 3) {
             const y = parts[0];
             const m = parts[1].padStart(2, '0');
@@ -307,23 +310,22 @@
             cleanDate = `${y}-${m}-${d}`;
           }
 
-          // 시간 및 강의실 문자열 내 모든 공백 제거
-          let cleanTime = String(app.time || '').replace(/\s+/g, '');
-          let cleanRoom = String(app.room || '').replace(/\s+/g, '');
+          const rawTime = String(app.time || '').trim();
+          const parsedCount = parseInt(app.count, 10);
 
           return {
             ...app,
             date: cleanDate,
-            time: cleanTime,
-            room: cleanRoom,
-            count: Number(app.count || 0)
+            time: rawTime,
+            room: String(app.room || '').trim(),
+            count: isNaN(parsedCount) ? 0 : parsedCount
           };
         });
       } else {
         applications = [];
       }
       
-      console.log("정제되어 반영된 신청 내역:", applications);
+      console.log("서버 데이터 동기화 완료:", applications);
     } catch (err) {
       console.error("데이터 로딩 실패:", err);
     } finally {
@@ -380,12 +382,14 @@
     renderCalendar();
   }
 
-  // 2. 슬롯 계산 함수 (완화된 매칭 검사)
+  // 2. 슬롯 계산 함수 (날짜 + 시간 정규화 매칭)
   function getSlotStats(dateStr, timeStr) {
-    const targetTime = String(timeStr || '').replace(/\s+/g, '');
+    const targetNormTime = normalizeStr(timeStr);
 
     const list = applications.filter(a => {
-      return a.date === dateStr && a.time === targetTime;
+      const matchDate = (a.date === dateStr);
+      const matchTime = (normalizeStr(a.time) === targetNormTime);
+      return matchDate && matchTime;
     });
 
     const room1Count = list.filter(a => a.room.includes("강의실1")).reduce((sum, a) => sum + a.count, 0);

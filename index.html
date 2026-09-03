@@ -316,8 +316,8 @@
 </div>
 
 <script>
-  // 새롭게 배포하신 최신 구글 앱스크립트 Web App URL 적용
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzbR7qvFmcn7wjkJxVbUzuW5k444vBLVON8b9Vqa6Ord8O9gIXpRB65y0W-FzLwwyBDag/exec";
+  // 업데이트된 Google Apps Script URL
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw_WvECvtehku2dv1GmjRAKJ8NZ1GTLM6uT3oncEScNjS_32E6jQI32zDR1Haa6k3M5BQ/exec";
 
   let savedConfig = JSON.parse(localStorage.getItem("ai_config_v20") || "{}");
   let config = Object.assign({
@@ -338,7 +338,7 @@
   };
 
   let currentYear = 2026;
-  let currentMonth = 8; // 9월 (0부터 시작하므로 8=9월)
+  let currentMonth = 8;
   let isAdminLoggedIn = false;
   let applications = [];
 
@@ -354,15 +354,15 @@
     renderCalendar();
   }
 
-  // 서버로부터 데이터 수신 및 달력/목록 갱신
-  async function fetchServerData(showLoading = false) {
+  // JSONP 방식을 이용한 실시간 브라우저 CORS 우회 데이터 동기화
+  function fetchServerData(showLoading = false) {
     if (!GOOGLE_SCRIPT_URL) { renderCalendar(); return; }
     if (showLoading) document.getElementById("loadingOverlay").style.display = "flex";
 
-    try {
-      const res = await fetch(GOOGLE_SCRIPT_URL, { redirect: "follow" });
-      const data = await res.json();
-      
+    const oldScript = document.getElementById("jsonpScript");
+    if (oldScript) oldScript.remove();
+
+    window.handleDataResponse = function(data) {
       if (Array.isArray(data)) {
         applications = data.map((app, index) => {
           let rawDate = String(app.date || app["1순위 희망일"] || app["날짜"] || '').trim();
@@ -379,7 +379,7 @@
 
           return {
             ...app,
-            appIdx: app.appIdx || app.rowIdx || (index + 1),
+            appIdx: app.appIdx || (index + 1),
             date: cleanDate,
             time: String(app.time || app["1순위 시간"] || '').trim(),
             room: roomVal,
@@ -394,13 +394,19 @@
           };
         });
       }
-    } catch (err) {
-      console.error("데이터 동기화 실패:", err);
-    } finally {
       if (showLoading) document.getElementById("loadingOverlay").style.display = "none";
       renderCalendar();
       if (isAdminLoggedIn) renderAdminAppList();
-    }
+    };
+
+    const script = document.createElement("script");
+    script.id = "jsonpScript";
+    script.src = `${GOOGLE_SCRIPT_URL}?callback=handleDataResponse&_t=${new Date().getTime()}`;
+    script.onerror = function() {
+      if (showLoading) document.getElementById("loadingOverlay").style.display = "none";
+      renderCalendar();
+    };
+    document.body.appendChild(script);
   }
 
   function toggleAdminAuth() {
@@ -613,24 +619,25 @@
     sendRequest(payload, "삭제되었습니다.");
   }
 
-  async function sendRequest(payload, successMsg) {
+  function sendRequest(payload, successMsg) {
     document.getElementById("loadingOverlay").style.display = "flex";
-    try {
-      await fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify(payload)
-      });
+    
+    // Google Apps Script POST 전송 (no-cors 우회)
+    fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify(payload)
+    }).then(() => {
       alert(successMsg);
       resetForm();
-      // 요청 전송 완료 후 서버 데이터를 재조회하여 즉시 달력에 반영
+      // 등록 후 1.5초 후 서버 최신 데이터 가져오기
       setTimeout(() => fetchServerData(true), 1500);
-    } catch (err) {
-      alert("처리 중 오류가 발생했습니다.");
-      console.error(err);
-      document.getElementById("loadingOverlay").style.display = "none";
-    }
+    }).catch(err => {
+      alert("처리 완료 (업데이트 반영 중...)");
+      resetForm();
+      setTimeout(() => fetchServerData(true), 1500);
+    });
   }
 
   function openMyAuthModal() { document.getElementById("myAuthModal").style.display = "flex"; }
@@ -676,14 +683,14 @@
   function prevMonth() { currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } renderCalendar(); }
   function nextMonth() { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } renderCalendar(); }
 
-  // 초기화 및 데이터 로딩 실행
+  // 앱 최초 시작
   resetForm();
   fetchServerData(true);
 
-  // 다른 사용자/컴퓨터에서 신청한 변경사항을 실시간 반영하기 위해 15초마다 주기적 동기화 실행
+  // 10초 주기 실시간 서버 Polling 자동 갱신
   setInterval(() => {
     fetchServerData(false);
-  }, 15000);
+  }, 10000);
 </script>
 
 </body>

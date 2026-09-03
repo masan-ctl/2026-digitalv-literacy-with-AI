@@ -270,7 +270,6 @@
   let editingId = null;
   let applications = [];
 
-  // 구글 시트에서 최신 전체 신청 데이터를 불러오는 핵심 함수
   async function fetchServerData() {
     if (!GOOGLE_SCRIPT_URL) {
       renderCalendar();
@@ -360,16 +359,11 @@
 
     const lastDate = new Date(currentYear, currentMonth + 1, 0).getDate();
     const firstDayObj = new Date(currentYear, currentMonth, 1);
-    const firstDayOfWeek = firstDayObj.getDay(); // 0(일), 1(월), 2(화)...
+    const firstDayOfWeek = firstDayObj.getDay();
 
-    // 평일 달력(월~금, 5컬럼)에 맞춘 공백 처리 계산
     let offset = 0;
     if (firstDayOfWeek >= 1 && firstDayOfWeek <= 5) {
       offset = firstDayOfWeek - 1;
-    } else if (firstDayOfWeek === 6) {
-      offset = 0; // 토요일 시작 시 월요일 기준 처리
-    } else if (firstDayOfWeek === 0) {
-      offset = 0; // 일요일 시작 시 월요일 기준 처리
     }
 
     for (let i = 0; i < offset; i++) {
@@ -382,7 +376,7 @@
       const dayObj = new Date(currentYear, currentMonth, date);
       const dayOfWeek = dayObj.getDay();
 
-      if (dayOfWeek === 0 || dayOfWeek === 6) continue; // 주말 제의
+      if (dayOfWeek === 0 || dayOfWeek === 6) continue;
 
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
       const holidayInfo = HOLIDAYS[dateStr];
@@ -392,9 +386,8 @@
 
       if (holidayInfo) {
         cell.className = holidayInfo.type === "chuseok" ? "day-cell chuseok-cell" : "day-cell holiday-cell";
-      } else if (!isWithinPeriod) {
-        cell.className = "day-cell disabled-cell";
       } else {
+        // 9월 1일~11일 포함 운영 기간 외의 일자도 흐릿하지 않고 선명한 기본 셀 형태로 표시
         cell.className = "day-cell";
       }
 
@@ -435,6 +428,7 @@
               <span class="${isRoom2Closed ? 'status-no' : 'status-ok'}">${isThursday ? '마감' : (isRoom2Closed ? '마감' : '가능')}</span>
             </div>
           `;
+          
           if (isWithinPeriod) {
             slotEl.onclick = () => selectSlotForForm(dateStr, time);
           } else {
@@ -588,7 +582,6 @@
   function prevMonth() { currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } renderCalendar(); }
   function nextMonth() { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } renderCalendar(); }
 
-  // 페이지 진입 초기화 로직
   resetForm();
   fetchServerData();
 </script>

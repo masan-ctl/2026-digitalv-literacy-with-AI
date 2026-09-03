@@ -38,13 +38,12 @@
     .calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
     .day-header { text-align: center; font-weight: bold; padding: 8px; background: #f1f5f9; border-radius: 6px; color: #475569; font-size: 0.85rem; }
     
-    .day-cell { background: white; border: 1px solid var(--border-color); border-radius: 6px; min-height: 155px; padding: 8px; display: flex; flex-direction: column; }
+    .day-cell { background: white; border: 1px solid var(--border-color); border-radius: 6px; min-height: 155px; padding: 8px; display: flex; flex-direction: column; opacity: 1 !important; }
     .day-cell.empty-cell { background: transparent; border: none; }
-    .day-cell.disabled-cell { background: #f8fafc; opacity: 0.6; }
     .day-cell.chuseok-cell { background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); border: 1px solid #fed7aa; }
     .day-cell.holiday-cell { background: linear-gradient(135deg, #fef2f2 0%, #ffe4e6 100%); border: 1px solid #fecdd3; }
     
-    .date-number { font-weight: bold; font-size: 0.88rem; margin-bottom: 6px; color: #334155; display: flex; justify-content: space-between; align-items: center; }
+    .date-number { font-weight: bold; font-size: 0.88rem; margin-bottom: 6px; color: #1e293b; display: flex; justify-content: space-between; align-items: center; opacity: 1 !important; }
     .chuseok-tag { font-size: 0.72rem; color: #c2410c; background: #ffedd5; border: 1px solid #fdba74; padding: 2px 6px; border-radius: 12px; font-weight: bold; }
     .holiday-tag { font-size: 0.72rem; color: var(--danger-color); background: #ffe4e6; border: 1px solid #fca5a5; padding: 2px 6px; border-radius: 12px; font-weight: bold; }
 
@@ -55,8 +54,11 @@
     .holiday-banner-box.red-text .title { color: #991b1b; }
     .holiday-banner-box .desc { font-size: 0.72rem; color: #ea580c; margin-top: 2px; }
 
-    .slot-item { font-size: 0.75rem; padding: 6px 8px; margin-bottom: 6px; border-radius: 5px; background: #f8fafc; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; }
+    .slot-item { font-size: 0.75rem; padding: 6px 8px; margin-bottom: 6px; border-radius: 5px; background: #f8fafc; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; opacity: 1 !important; }
     .slot-item:hover { background: #eff6ff; border-color: #bfdbfe; }
+    .slot-item.out-of-period { cursor: not-allowed; background: #f1f5f9; }
+    .slot-item.out-of-period:hover { background: #f1f5f9; border-color: #e2e8f0; }
+
     .slot-title { font-weight: bold; color: #1e293b; margin-bottom: 4px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 2px; }
     .room-line { display: flex; justify-content: space-between; margin-top: 2px; font-size: 0.7rem; }
     .status-ok { color: var(--success-color); font-weight: 600; }
@@ -247,7 +249,7 @@
 <script>
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwt8vZLOqyQ_Zy-qwjpFfu8NZ3wBZuN_x4mqkeDn9DwUi8phVRQE7ARsfjyifu85xhBFw/exec";
 
-  let config = JSON.parse(localStorage.getItem("ai_config_v19") || JSON.stringify({
+  let config = JSON.parse(localStorage.getItem("ai_config_v20") || JSON.stringify({
     startDate: "2026-09-14",
     endDate: "2026-11-14",
     className: "",
@@ -265,7 +267,7 @@
   };
 
   let currentYear = 2026;
-  let currentMonth = 8; // 8 = 9월 (Javascript Month index)
+  let currentMonth = 8; // 8 = 9월
   let isAdminLoggedIn = false;
   let editingId = null;
   let applications = [];
@@ -328,7 +330,7 @@
     config.maxRoom2 = parseInt(document.getElementById("cfgMaxRoom2").value) || 0;
     config.maxTotal = parseInt(document.getElementById("cfgMaxTotal").value) || 0;
 
-    localStorage.setItem("ai_config_v19", JSON.stringify(config));
+    localStorage.setItem("ai_config_v20", JSON.stringify(config));
     alert("관리자 설정이 저장되었습니다.");
     resetForm();
     renderCalendar();
@@ -387,7 +389,6 @@
       if (holidayInfo) {
         cell.className = holidayInfo.type === "chuseok" ? "day-cell chuseok-cell" : "day-cell holiday-cell";
       } else {
-        // 9월 1일~11일 포함 운영 기간 외의 일자도 흐릿하지 않고 선명한 기본 셀 형태로 표시
         cell.className = "day-cell";
       }
 
@@ -416,7 +417,15 @@
           const isRoom2Closed = !isWithinPeriod || isThursday || stats.room2Count >= config.maxRoom2 || stats.totalCount >= config.maxTotal;
 
           const slotEl = document.createElement("div");
-          slotEl.className = "slot-item";
+          
+          if (isWithinPeriod) {
+            slotEl.className = "slot-item";
+            slotEl.onclick = () => selectSlotForForm(dateStr, time);
+          } else {
+            // 운영 기간 바깥인 경우 투명도 감쇄 없이 일반 마감 상태 스타일 적용
+            slotEl.className = "slot-item out-of-period";
+          }
+
           slotEl.innerHTML = `
             <div class="slot-title">${time}</div>
             <div class="room-line">
@@ -429,12 +438,6 @@
             </div>
           `;
           
-          if (isWithinPeriod) {
-            slotEl.onclick = () => selectSlotForForm(dateStr, time);
-          } else {
-            slotEl.style.cursor = "not-allowed";
-            slotEl.style.opacity = "0.6";
-          }
           cell.appendChild(slotEl);
         });
       }

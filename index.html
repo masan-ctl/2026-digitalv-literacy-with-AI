@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>2026 디지털 리터러시 with AI 신청(09~11월 운영) 🤖</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
@@ -75,7 +76,8 @@
 
     .admin-list-container { margin-top: 20px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; display: none; }
     .admin-list-container h4 { margin: 0 0 10px 0; font-size: 0.9rem; color: #334155; }
-    .admin-app-item { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; font-size: 0.78rem; display: flex; justify-content: space-between; align-items: center; }
+    .admin-app-item { background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; font-size: 0.78rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+    .admin-app-item:hover { background: #f1f5f9; }
 
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
     .modal-content { background: white; padding: 20px; border-radius: 10px; width: 420px; max-width: 90%; }
@@ -87,7 +89,7 @@
 </head>
 <body>
 
-<div class="loading-overlay" id="loadingOverlay">⏳ 서버에서 최신 신청 데이터를 불러오는 중...</div>
+<div class="loading-overlay" id="loadingOverlay">⏳ 서버에서 최신 신청 데이터를 처리하는 중...</div>
 
 <div class="container">
   <div class="header-area">
@@ -135,7 +137,7 @@
       <div class="calendar-grid" id="calendarGrid"></div>
 
       <div class="admin-list-container" id="adminListContainer">
-        <h4>📋 전체 신청 내역 (관리자 전용)</h4>
+        <h4>📋 전체 신청 내역 (관리자 전용 - 클릭 시 수정 모드)</h4>
         <div id="adminAppList"></div>
       </div>
     </div>
@@ -151,6 +153,9 @@
       </div>
 
       <form id="applyForm" onsubmit="handleApplySubmit(event)">
+        <!-- 관리자 수정 시 식별 키 저장용 폼 필드 -->
+        <input type="hidden" id="appRowIndex" value="">
+
         <div class="form-row">
           <div class="form-group" style="flex:1;">
             <label class="req">1순위 날짜</label>
@@ -216,8 +221,14 @@
           </div>
         </div>
 
-        <div class="form-btns">
+        <div class="form-btns" id="normalFormBtns">
           <button type="submit" class="btn btn-primary" id="submitBtn" style="flex:1;">신청 제출하기</button>
+        </div>
+
+        <div class="form-btns" id="adminEditBtns" style="display:none; gap:6px;">
+          <button type="button" class="btn btn-save" onclick="handleAdminUpdate()" style="flex:1;">💾 수정 내용 저장</button>
+          <button type="button" class="btn btn-danger" onclick="handleAdminDelete()" style="flex:1;">🗑️ 삭제하기</button>
+          <button type="button" class="btn btn-secondary" onclick="resetForm()" style="flex:0.8;">취소</button>
         </div>
       </form>
     </div>
@@ -245,8 +256,8 @@
 </div>
 
 <script>
-  // 업데이트된 구글 앱스클립트 배포 URL
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwhxjm5SveV6eiNrRHe39whh8hmI6ZnSIF8GONdSQrsO8WzYqKQYuvIazQypd_Z7F_uPw/exec";
+  // 업데이트된 신규 구글 앱스크립트 배포 URL
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybGpecmXA2gb2nZiGXSccLfMMbB1Nn087SSCIQtQ6dvioUOThkf0cv97NXwKlfy5DPFw/exec";
 
   let savedConfig = JSON.parse(localStorage.getItem("ai_config_v20") || "{}");
   let config = Object.assign({
@@ -274,12 +285,11 @@
   let isAdminLoggedIn = false;
   let applications = [];
 
-  // 문자열 정규화 (공백, 콜론, 하이픈 등 특수문자 제거하여 비교 키 생성)
   function normalizeStr(str) {
     return String(str || '').replace(/[\s\:\-\~\._]/g, '');
   }
 
-  // 서버 데이터 가져오기 및 완벽한 표준화 처리
+  // 서버 데이터 가져오기
   async function fetchServerData(showLoading = false) {
     if (!GOOGLE_SCRIPT_URL) {
       renderCalendar();
@@ -295,7 +305,7 @@
       const data = await res.json();
       
       if (Array.isArray(data)) {
-        applications = data.map(app => {
+        applications = data.map((app, index) => {
           let rawDate = String(app.date || app["1순위 희망일"] || '').trim();
           if (rawDate.includes("T")) rawDate = rawDate.split("T")[0];
           
@@ -316,12 +326,16 @@
 
           return {
             ...app,
+            appIdx: index,
             date: cleanDate,
             time: rawTime,
             room: rawRoom,
             count: isNaN(parsedCount) ? 0 : parsedCount,
             dept: String(app.dept || app["학과명"] || '').trim(),
             className: String(app.className || app["분반명"] || '').trim(),
+            priority2: String(app.priority2 || app["2순위 가능 일시"] || '').trim(),
+            priority3: String(app.priority3 || app["3순위 가능 일시"] || '').trim(),
+            note: String(app.note || app["특이사항"] || '').trim(),
             name: String(app.name || app["신청자 이름"] || '').trim(),
             pw: String(app.pw || app["비밀번호"] || '').replace(/^'/, '').trim()
           };
@@ -348,6 +362,7 @@
       document.getElementById("adminListContainer").style.display = "none";
       document.getElementById("slotInfoBox").style.display = "none";
       document.getElementById("adminToggleBtn").innerText = "관리자 로그인";
+      resetForm();
     } else {
       const pw = prompt("관리자 비밀번호를 입력하세요:");
       if (pw === "1494") {
@@ -387,7 +402,6 @@
     renderCalendar();
   }
 
-  // 지정 일시 및 강의실별 인원 집계
   function getSlotStats(dateStr, timeStr) {
     const targetNormTime = normalizeStr(timeStr);
 
@@ -404,7 +418,6 @@
     return { room1Count, room2Count, totalCount, list };
   }
 
-  // 달력 그리기
   function renderCalendar() {
     const grid = document.getElementById("calendarGrid");
     grid.innerHTML = "";
@@ -438,7 +451,7 @@
       const dayObj = new Date(currentYear, currentMonth, date);
       const dayOfWeek = dayObj.getDay();
 
-      if (dayOfWeek === 0 || dayOfWeek === 6) continue; // 주말 제어
+      if (dayOfWeek === 0 || dayOfWeek === 6) continue;
 
       const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
       const holidayInfo = HOLIDAYS[dateStr];
@@ -528,24 +541,51 @@
     box.style.display = "block";
     textEl.innerText = `📌 [${date} ${time}] 접수 건수: 총 ${stats.list.length}건`;
 
-    selectEl.innerHTML = `<option value="">-- [${date}] 접수된 내역 선택 --</option>`;
+    selectEl.innerHTML = `<option value="">-- [${date} ${time}] 접수 내역 선택 수정 --</option>`;
     stats.list.forEach(app => {
       const opt = document.createElement("option");
-      opt.value = app.id || app.name;
+      opt.value = app.appIdx;
       opt.innerText = `[${app.room}] ${app.dept} / ${app.name} (${app.count}명)`;
       selectEl.appendChild(opt);
     });
   }
 
+  // 관리자가 드롭다운이나 목록에서 선택 시 해당 신청 정보 불러와 수정 모드로 전환
+  function loadSelectedSlotApp(appIdx) {
+    if (appIdx === "") { resetForm(); return; }
+    const app = applications.find(a => String(a.appIdx) === String(appIdx));
+    if (!app) return;
+
+    document.getElementById("appRowIndex").value = app.appIdx;
+    document.getElementById("appDate").value = app.date;
+    document.getElementById("appTime").value = app.time;
+    document.getElementById("appRoom").value = app.room;
+    document.getElementById("appCount").value = app.count;
+    document.getElementById("appDept").value = app.dept;
+    document.getElementById("appClass").value = app.className;
+    document.getElementById("appPriority2").value = app.priority2;
+    document.getElementById("appPriority3").value = app.priority3;
+    document.getElementById("appNote").value = app.note;
+    document.getElementById("appName").value = app.name;
+    document.getElementById("appPw").value = app.pw;
+
+    document.getElementById("formTitle").innerText = "✏️ 신청 내역 수정/삭제 (관리자)";
+    document.getElementById("normalFormBtns").style.display = "none";
+    document.getElementById("adminEditBtns").style.display = "flex";
+  }
+
   function resetForm() {
     document.getElementById("formTitle").innerText = "📝 프로그램 신청";
-    document.getElementById("submitBtn").innerText = "신청 제출하기";
+    document.getElementById("appRowIndex").value = "";
     document.getElementById("applyForm").reset();
     document.getElementById("appDate").value = config.startDate;
     document.getElementById("slotInfoBox").style.display = "none";
+    
+    document.getElementById("normalFormBtns").style.display = "flex";
+    document.getElementById("adminEditBtns").style.display = "none";
   }
 
-  // 폼 제출 함수
+  // 일반 신청 제출
   async function handleApplySubmit(e) {
     e.preventDefault();
 
@@ -566,7 +606,7 @@
       return;
     }
 
-    const formData = { date, time, room, count, dept, className, priority2, priority3, note, name, pw };
+    const formData = { action: "create", date, time, room, count, dept, className, priority2, priority3, note, name, pw };
 
     document.getElementById("loadingOverlay").style.display = "flex";
     try {
@@ -581,6 +621,72 @@
       setTimeout(() => fetchServerData(false), 1500);
     } catch (err) {
       alert("제출 중 오류가 발생했습니다.");
+      console.error(err);
+    } finally {
+      document.getElementById("loadingOverlay").style.display = "none";
+    }
+  }
+
+  // 관리자 수정 저장
+  async function handleAdminUpdate() {
+    const appIdx = document.getElementById("appRowIndex").value;
+    if (appIdx === "") { alert("수정할 대상을 선택해 주세요."); return; }
+
+    const date = document.getElementById("appDate").value;
+    const time = document.getElementById("appTime").value;
+    const room = document.getElementById("appRoom").value;
+    const count = parseInt(document.getElementById("appCount").value);
+    const dept = document.getElementById("appDept").value.trim();
+    const className = document.getElementById("appClass").value.trim();
+    const priority2 = document.getElementById("appPriority2").value.trim();
+    const priority3 = document.getElementById("appPriority3").value.trim();
+    const note = document.getElementById("appNote").value.trim();
+    const name = document.getElementById("appName").value.trim();
+    const pw = document.getElementById("appPw").value.trim();
+
+    const updateData = { action: "update", appIdx, date, time, room, count, dept, className, priority2, priority3, note, name, pw };
+
+    document.getElementById("loadingOverlay").style.display = "flex";
+    try {
+      await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(updateData),
+        redirect: "follow"
+      });
+      alert("신청 내역이 성공적으로 수정되었습니다.");
+      resetForm();
+      setTimeout(() => fetchServerData(false), 1500);
+    } catch (err) {
+      alert("수정 저장 중 오류가 발생했습니다.");
+      console.error(err);
+    } finally {
+      document.getElementById("loadingOverlay").style.display = "none";
+    }
+  }
+
+  // 관리자 삭제
+  async function handleAdminDelete() {
+    const appIdx = document.getElementById("appRowIndex").value;
+    if (appIdx === "") { alert("삭제할 대상을 선택해 주세요."); return; }
+
+    if (!confirm("해당 신청 내역을 정말 삭제하시겠습니까?")) return;
+
+    const deleteData = { action: "delete", appIdx, name: document.getElementById("appName").value };
+
+    document.getElementById("loadingOverlay").style.display = "flex";
+    try {
+      await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(deleteData),
+        redirect: "follow"
+      });
+      alert("신청 내역이 삭제되었습니다.");
+      resetForm();
+      setTimeout(() => fetchServerData(false), 1500);
+    } catch (err) {
+      alert("삭제 중 오류가 발생했습니다.");
       console.error(err);
     } finally {
       document.getElementById("loadingOverlay").style.display = "none";
@@ -627,6 +733,7 @@
     applications.forEach(app => {
       const item = document.createElement("div");
       item.className = "admin-app-item";
+      item.onclick = () => loadSelectedSlotApp(app.appIdx);
       item.innerHTML = `<div><strong>${app.date} [${app.time}]</strong> - ${app.dept} (${app.name}, ${app.count}명) | ${app.room}</div>`;
       listEl.appendChild(item);
     });

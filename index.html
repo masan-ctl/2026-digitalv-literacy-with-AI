@@ -280,7 +280,7 @@
     return String(str || '').replace(/[\s\:\-\~\._]/g, '');
   }
 
-  // 1. 서버 데이터 불러오기 및 유연한 날짜/시간 정제 강화
+  // 1. 서버 데이터 불러오기 및 유연한 날짜/시간/헤더명 정제 강화
   async function fetchServerData(showLoading = false) {
     if (!GOOGLE_SCRIPT_URL) {
       renderCalendar();
@@ -297,7 +297,8 @@
       
       if (Array.isArray(data)) {
         applications = data.map(app => {
-          let rawDate = String(app.date || '').trim();
+          // 스프레드시트 한글 헤더 및 영문 키 겸용 지원
+          let rawDate = String(app["1순위 희망일"] || app.date || '').trim();
           if (rawDate.includes("T")) rawDate = rawDate.split("T")[0];
           
           let cleanDate = rawDate.replace(/[\.\/]/g, '-').replace(/\s+/g, '');
@@ -310,15 +311,21 @@
             cleanDate = `${y}-${m}-${d}`;
           }
 
-          const rawTime = String(app.time || '').trim();
-          const parsedCount = parseInt(app.count, 10);
+          const rawTime = String(app["1순위 시간"] || app.time || '').trim();
+          const rawRoom = String(app["강의실"] || app.room || '').trim();
+          const rawCount = app["신청인원"] !== undefined ? app["신청인원"] : app.count;
+          const parsedCount = parseInt(rawCount, 10);
 
           return {
             ...app,
             date: cleanDate,
             time: rawTime,
-            room: String(app.room || '').trim(),
-            count: isNaN(parsedCount) ? 0 : parsedCount
+            room: rawRoom,
+            count: isNaN(parsedCount) ? 0 : parsedCount,
+            dept: String(app["학과명"] || app.dept || '').trim(),
+            className: String(app["분반명"] || app.className || '').trim(),
+            name: String(app["신청자 이름"] || app.name || '').trim(),
+            pw: String(app["비밀번호"] || app.pw || '').trim()
           };
         });
       } else {

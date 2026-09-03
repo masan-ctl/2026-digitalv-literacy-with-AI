@@ -93,7 +93,7 @@
   <div class="header-area">
     <h1>&lt;2026 디지털 리터러시 with AI 신청(09~11월 운영) 🤖&gt;</h1>
     <div class="top-btns">
-      <button class="btn btn-secondary" onclick="fetchServerData()">🔄 새로고침</button>
+      <button class="btn btn-secondary" onclick="fetchServerData(true)">🔄 새로고침</button>
       <button class="btn btn-primary" onclick="openMyAuthModal()">내 신청 조회/수정</button>
       <button class="btn btn-admin" id="adminToggleBtn" onclick="toggleAdminAuth()">관리자 로그인</button>
     </div>
@@ -271,12 +271,17 @@
   let editingId = null;
   let applications = [];
 
-  async function fetchServerData() {
+  // showLoading: 수동 새로고침/최초접속 시에만 로딩 표시, 자동 백그라운드 동기화 시에는 끄기
+  async function fetchServerData(showLoading = false) {
     if (!GOOGLE_SCRIPT_URL) {
       renderCalendar();
       return;
     }
-    document.getElementById("loadingOverlay").style.display = "flex";
+    
+    if (showLoading) {
+      document.getElementById("loadingOverlay").style.display = "flex";
+    }
+
     try {
       const res = await fetch(GOOGLE_SCRIPT_URL);
       const data = await res.json();
@@ -284,7 +289,9 @@
     } catch (err) {
       console.error("데이터 로딩 실패:", err);
     } finally {
-      document.getElementById("loadingOverlay").style.display = "none";
+      if (showLoading) {
+        document.getElementById("loadingOverlay").style.display = "none";
+      }
       renderCalendar();
     }
   }
@@ -518,7 +525,7 @@
       });
       alert("신청이 접수되었습니다!");
       resetForm();
-      setTimeout(fetchServerData, 1000);
+      setTimeout(() => fetchServerData(false), 1000);
     } catch (err) {
       alert("제출 중 오류가 발생했습니다.");
     } finally {
@@ -582,7 +589,12 @@
   function nextMonth() { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } renderCalendar(); }
 
   resetForm();
-  fetchServerData();
+  
+  // 최초 페이지 접속 시 로딩창과 함께 서버 데이터 로드
+  fetchServerData(true);
+
+  // 30초(30000ms)마다 백그라운드에서 실시간 동기화
+  setInterval(() => fetchServerData(false), 30000);
 </script>
 
 </body>

@@ -246,13 +246,12 @@
 </div>
 
 <script>
-  // 최신 발급해주신 구글 앱스 스크립트 주소 적용 완료
+  // 최신 발급해주신 구글 앱스 스크립트 주소
   const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwlZPvFcEpgHEp0OYTihnJLzThuGdGklDCJw0ZOt2NmzgZZahbrSUCZz56c8zfgMMydRg/exec";
 
-  // 기존 로컬스토리지 설정이 있더라도 9월 15일로 강제 업데이트
   let savedConfig = JSON.parse(localStorage.getItem("ai_config_v20") || "{}");
   let config = Object.assign({
-    startDate: "2026-09-15", // 시작일 9월 15일 설정
+    startDate: "2026-09-15",
     endDate: "2026-11-14",
     className: "",
     maxRoom1: 40,
@@ -277,7 +276,7 @@
   let editingId = null;
   let applications = [];
 
-  // 서버 데이터 로딩 (redirect: "follow" 적용)
+  // 1. 서버 데이터 불러오기 및 유연한 날짜/시간 정제 강화
   async function fetchServerData(showLoading = false) {
     if (!GOOGLE_SCRIPT_URL) {
       renderCalendar();
@@ -291,8 +290,40 @@
     try {
       const res = await fetch(GOOGLE_SCRIPT_URL, { redirect: "follow" });
       const data = await res.json();
-      applications = Array.isArray(data) ? data : [];
-      console.log("불러온 신청 내역:", applications);
+      
+      if (Array.isArray(data)) {
+        applications = data.map(app => {
+          let cleanDate = String(app.date || '').trim();
+          if (cleanDate.includes("T")) cleanDate = cleanDate.split("T")[0]; // ISO 8601 대응
+          
+          // 점(.) 형태 등 특수문자 공통 구분자로 변경
+          cleanDate = cleanDate.replace(/[\.\/]/g, '-').replace(/\s+/g, '');
+          
+          const parts = cleanDate.split('-').filter(p => p.length > 0);
+          if (parts.length === 3) {
+            const y = parts[0];
+            const m = parts[1].padStart(2, '0');
+            const d = parts[2].padStart(2, '0');
+            cleanDate = `${y}-${m}-${d}`;
+          }
+
+          // 시간 및 강의실 문자열 내 모든 공백 제거
+          let cleanTime = String(app.time || '').replace(/\s+/g, '');
+          let cleanRoom = String(app.room || '').replace(/\s+/g, '');
+
+          return {
+            ...app,
+            date: cleanDate,
+            time: cleanTime,
+            room: cleanRoom,
+            count: Number(app.count || 0)
+          };
+        });
+      } else {
+        applications = [];
+      }
+      
+      console.log("정제되어 반영된 신청 내역:", applications);
     } catch (err) {
       console.error("데이터 로딩 실패:", err);
     } finally {
@@ -349,17 +380,16 @@
     renderCalendar();
   }
 
-  // 슬롯 인원 계산 로직 (공백 및 타입 매칭 강화)
+  // 2. 슬롯 계산 함수 (완화된 매칭 검사)
   function getSlotStats(dateStr, timeStr) {
+    const targetTime = String(timeStr || '').replace(/\s+/g, '');
+
     const list = applications.filter(a => {
-      const aDate = String(a.date || '').trim();
-      const aTime = String(a.time || '').replace(/\s+/g, '');
-      const targetTime = String(timeStr || '').replace(/\s+/g, '');
-      return aDate === dateStr && aTime === targetTime;
+      return a.date === dateStr && a.time === targetTime;
     });
 
-    const room1Count = list.filter(a => String(a.room).trim() === "강의실1").reduce((sum, a) => sum + Number(a.count || 0), 0);
-    const room2Count = list.filter(a => String(a.room).trim() === "강의실2").reduce((sum, a) => sum + Number(a.count || 0), 0);
+    const room1Count = list.filter(a => a.room.includes("강의실1")).reduce((sum, a) => sum + a.count, 0);
+    const room2Count = list.filter(a => a.room.includes("강의실2")).reduce((sum, a) => sum + a.count, 0);
     const totalCount = room1Count + room2Count;
 
     return { room1Count, room2Count, totalCount, list };
@@ -431,7 +461,6 @@
         bannerBox.innerHTML = `<div class="icon">${holidayInfo.icon}</div><div class="title">${holidayInfo.name}</div><div class="desc">${holidayInfo.desc}</div>`;
         cell.appendChild(bannerBox);
       } else if (isWithinPeriod) {
-        // 지정하신 운영 시작일(9/15~)부터만 슬롯 활성화
         TIME_SLOTS.forEach(time => {
           const stats = getSlotStats(dateStr, time);
           const isThursday = (dayOfWeek === 4);
@@ -507,7 +536,6 @@
     document.getElementById("slotInfoBox").style.display = "none";
   }
 
-  // 폼 제출 처리 (text/plain 전송 및 CORS 대응)
   async function handleApplySubmit(e) {
     e.preventDefault();
 

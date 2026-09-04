@@ -118,17 +118,31 @@
     
     .day-cell { background: white; border: 1px solid var(--border-color); border-radius: 6px; min-height: 130px; padding: 6px; display: flex; flex-direction: column; overflow: hidden; }
     .day-cell.empty-cell { background: transparent; border: none; }
+    
+    /* 휴일/연휴 스타일링 및 그래픽 디테일 강화 */
     .day-cell.chuseok-cell { background: #fff7ed; border-color: #fed7aa; }
     .day-cell.holiday-cell { background: #fef2f2; border-color: #fecdd3; }
     .day-cell.out-of-period-cell { background: #f8fafc; color: #94a3b8; }
     
     .date-number { font-weight: bold; font-size: 0.82rem; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
-    .chuseok-tag, .holiday-tag { font-size: 0.65rem; padding: 1px 4px; border-radius: 8px; font-weight: bold; }
-    .chuseok-tag { color: #c2410c; background: #ffedd5; }
-    .holiday-tag { color: var(--danger-color); background: #ffe4e6; }
+    .chuseok-tag, .holiday-tag { font-size: 0.68rem; padding: 2px 5px; border-radius: 8px; font-weight: bold; display: inline-flex; align-items: center; gap: 2px; }
+    .chuseok-tag { color: #c2410c; background: #ffedd5; border: 1px solid #fdba74; }
+    .holiday-tag { color: var(--danger-color); background: #ffe4e6; border: 1px solid #fca5a5; }
 
-    .slot-item { font-size: 0.72rem; padding: 5px; margin-bottom: 4px; border-radius: 4px; background: #f8fafc; border: 1px solid #e2e8f0; cursor: pointer; }
-    .slot-item:hover { background: #eff6ff; border-color: #bfdbfe; }
+    .holiday-graphic-box {
+      margin-top: auto;
+      margin-bottom: auto;
+      text-align: center;
+      padding: 10px 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 6px;
+    }
+    .chuseok-cell .holiday-graphic-box { color: #ea580c; background: rgba(255, 237, 213, 0.5); }
+    .holiday-cell .holiday-graphic-box { color: #e11d48; background: rgba(254, 226, 226, 0.5); }
+
+    .slot-item { font-size: 0.72rem; padding: 5px; margin-bottom: 4px; border-radius: 4px; background: #f8fafc; border: 1px solid #e2e8f0; cursor: pointer; transition: all 0.2s; }
+    .slot-item:hover { background: #eff6ff; border-color: #bfdbfe; transform: translateY(-1px); }
     .slot-title { font-weight: bold; color: #1e293b; margin-bottom: 2px; }
     .room-line { display: flex; justify-content: space-between; margin-top: 1px; font-size: 0.68rem; }
     .status-ok { color: var(--success-color); font-weight: 600; }
@@ -316,8 +330,8 @@
 </div>
 
 <script>
-  // 업데이트된 Google Apps Script URL
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw_WvECvtehku2dv1GmjRAKJ8NZ1GTLM6uT3oncEScNjS_32E6jQI32zDR1Haa6k3M5BQ/exec";
+  // 새 구글 앱스크립트 배포 URL
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxm67RNE9unqlhDHgx_cXNAoNpn7zGo_t5pqJNd0ZIlfeByNTpdhr6bjKB0JwMM7hg_Rw/exec";
 
   let savedConfig = JSON.parse(localStorage.getItem("ai_config_v20") || "{}");
   let config = Object.assign({
@@ -330,15 +344,18 @@
   }, savedConfig);
 
   const TIME_SLOTS = ["10:00~12:00", "14:00~16:00", "16:00~18:00"];
+  
+  // 9월/10월 공휴일 정보 및 표시 아이콘 설정
   const HOLIDAYS = {
-    "2026-09-24": { name: "추석 연휴", type: "chuseok" },
-    "2026-09-25": { name: "추석", type: "chuseok" },
-    "2026-10-05": { name: "대체휴일", type: "holiday" },
-    "2026-10-09": { name: "한글날", type: "holiday" }
+    "2026-09-24": { name: "추석 연휴", icon: "🌾", type: "chuseok", desc: "추석 연휴 시작" },
+    "2026-09-25": { name: "추석 당일", icon: "🌕", type: "chuseok", desc: "즐거운 한가위" },
+    "2026-09-26": { name: "추석 연휴", icon: "🌾", type: "chuseok", desc: "추석 연휴" },
+    "2026-10-05": { name: "대체공휴일", icon: "🍂", type: "holiday", desc: "대체 공휴일" },
+    "2026-10-09": { name: "한글날", icon: "🇰🇷", type: "holiday", desc: "한글날 쉬어가는 날" }
   };
 
   let currentYear = 2026;
-  let currentMonth = 8;
+  let currentMonth = 8; // 9월 (0부터 시작하므로 8)
   let isAdminLoggedIn = false;
   let applications = [];
 
@@ -348,13 +365,13 @@
     config.startDate = document.getElementById("cfgStartDate").value;
     config.endDate = document.getElementById("cfgEndDate").value;
     config.maxRoom1 = parseInt(document.getElementById("cfgMaxRoom1").value) || 40;
-    config.maxRoom2 = parseInt(document.getElementById("cfgMaxRoom2").value) || 40;
+    config.maxRoom2 = parseInt(document.getElementById("cfgMaxMaxRoom2")?.value || document.getElementById("cfgMaxRoom2").value) || 40;
     config.maxTotal = parseInt(document.getElementById("cfgMaxTotal").value) || 80;
     localStorage.setItem("ai_config_v20", JSON.stringify(config));
     renderCalendar();
   }
 
-  // JSONP 방식을 이용한 실시간 브라우저 CORS 우회 데이터 동기화
+  // 데이터 동기화 함수 (JSONP)
   function fetchServerData(showLoading = false) {
     if (!GOOGLE_SCRIPT_URL) { renderCalendar(); return; }
     if (showLoading) document.getElementById("loadingOverlay").style.display = "flex";
@@ -362,38 +379,39 @@
     const oldScript = document.getElementById("jsonpScript");
     if (oldScript) oldScript.remove();
 
-    window.handleDataResponse = function(data) {
-      if (Array.isArray(data)) {
-        applications = data.map((app, index) => {
-          let rawDate = String(app.date || app["1순위 희망일"] || app["날짜"] || '').trim();
-          if (rawDate.includes("T")) rawDate = rawDate.split("T")[0];
-          let cleanDate = rawDate.replace(/[\.\/]/g, '-').replace(/\s+/g, '');
-          const parts = cleanDate.match(/\d+/g);
-          if (parts && parts.length >= 3) {
-            cleanDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-          }
+    window.handleDataResponse = function(response) {
+      const dataList = (response && response.data) ? response.data : (Array.isArray(response) ? response : []);
+      
+      applications = dataList.map((app, index) => {
+        let rawDate = String(app.date || app["1순위 희망일"] || app["날짜"] || '').trim();
+        if (rawDate.includes("T")) rawDate = rawDate.split("T")[0];
+        let cleanDate = rawDate.replace(/[\.\/]/g, '-').replace(/\s+/g, '');
+        const parts = cleanDate.match(/\d+/g);
+        if (parts && parts.length >= 3) {
+          cleanDate = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+        }
 
-          let roomVal = String(app.room || app["강의실"] || '').trim();
-          if (roomVal === "강1") roomVal = "강의실1";
-          if (roomVal === "강2") roomVal = "강의실2";
+        let roomVal = String(app.room || app["강의실"] || '').trim();
+        if (roomVal === "강1") roomVal = "강의실1";
+        if (roomVal === "강2") roomVal = "강의실2";
 
-          return {
-            ...app,
-            appIdx: app.appIdx || (index + 1),
-            date: cleanDate,
-            time: String(app.time || app["1순위 시간"] || '').trim(),
-            room: roomVal,
-            count: parseInt(app.count || app["신청인원"] || app["인원"]) || 0,
-            dept: String(app.dept || app["학과명"] || app["학과"] || '').trim(),
-            className: String(app.className || app["분반명"] || app["분반"] || '').trim(),
-            priority2: String(app.priority2 || app["2순위 가능 일시"] || '').trim(),
-            priority3: String(app.priority3 || app["3순위 가능 일시"] || '').trim(),
-            note: String(app.note || app["특이사항"] || '').trim(),
-            name: String(app.name || app["신청자 이름"] || app["이름"] || '').trim(),
-            pw: String(app.pw || app["비밀번호"] || '').replace(/^'/, '').trim()
-          };
-        });
-      }
+        return {
+          ...app,
+          appIdx: app.appIdx || (index + 1),
+          date: cleanDate,
+          time: String(app.time || app["1순위 시간"] || '').trim(),
+          room: roomVal,
+          count: parseInt(app.count || app["신청인원"] || app["인원"]) || 0,
+          dept: String(app.dept || app["학과명"] || app["학과"] || '').trim(),
+          className: String(app.className || app["분반명"] || app["분반"] || '').trim(),
+          priority2: String(app.priority2 || app["2순위 가능 일시"] || '').trim(),
+          priority3: String(app.priority3 || app["3순위 가능 일시"] || '').trim(),
+          note: String(app.note || app["특이사항"] || '').trim(),
+          name: String(app.name || app["신청자 이름"] || app["이름"] || app["applicantName"] || '').trim(),
+          pw: String(app.pw || app["비밀번호"] || '').replace(/^'/, '').trim()
+        };
+      });
+
       if (showLoading) document.getElementById("loadingOverlay").style.display = "none";
       renderCalendar();
       if (isAdminLoggedIn) renderAdminAppList();
@@ -442,8 +460,8 @@
   function getSlotStats(dateStr, timeStr) {
     const targetNormTime = normalizeStr(timeStr);
     const list = applications.filter(a => a.date === dateStr && normalizeStr(a.time) === targetNormTime);
-    const room1Count = list.filter(a => a.room.includes("강의실1") || a.room === "강1").reduce((sum, a) => sum + a.count, 0);
-    const room2Count = list.filter(a => a.room.includes("강의실2") || a.room === "강2").reduce((sum, a) => sum + a.count, 0);
+    const room1Count = list.filter(a => a.room.includes("강의실1") || a.room === "강1").reduce((sum, a) => sum + (a.count || 1), 0);
+    const room2Count = list.filter(a => a.room.includes("강의실2") || a.room === "강2").reduce((sum, a) => sum + (a.count || 1), 0);
     return { room1Count, room2Count, totalCount: room1Count + room2Count, list };
   }
 
@@ -481,10 +499,18 @@
 
       const dateNum = document.createElement("div");
       dateNum.className = "date-number";
-      dateNum.innerHTML = holidayInfo ? `<span>${date}일</span><span class="${holidayInfo.type==='chuseok'?'chuseok-tag':'holiday-tag'}">${holidayInfo.name}</span>` : `<span>${date}일</span>`;
+      dateNum.innerHTML = holidayInfo 
+        ? `<span>${date}일</span><span class="${holidayInfo.type==='chuseok'?'chuseok-tag':'holiday-tag'}">${holidayInfo.icon} ${holidayInfo.name}</span>` 
+        : `<span>${date}일</span>`;
       cell.appendChild(dateNum);
 
-      if (isWithinPeriod && !holidayInfo) {
+      if (holidayInfo) {
+        // 공휴일 예쁜 일러스트/배너 카드 표시
+        const graphicBox = document.createElement("div");
+        graphicBox.className = "holiday-graphic-box";
+        graphicBox.innerHTML = `<div>${holidayInfo.icon}</div><div>${holidayInfo.desc}</div>`;
+        cell.appendChild(graphicBox);
+      } else if (isWithinPeriod) {
         TIME_SLOTS.forEach(time => {
           const stats = getSlotStats(dateStr, time);
           const isThursday = (dayObj.getDay() === 4);
@@ -545,7 +571,7 @@
     document.getElementById("appDate").value = app.date;
     document.getElementById("appTime").value = app.time;
     document.getElementById("appRoom").value = app.room.includes("강의실2") ? "강의실2" : "강의실1";
-    document.getElementById("appCount").value = app.count;
+    document.getElementById("appCount").value = app.count || 1;
     document.getElementById("appDept").value = app.dept;
     document.getElementById("appClass").value = app.className;
     document.getElementById("appPriority2").value = app.priority2;
@@ -582,6 +608,7 @@
       priority2: document.getElementById("appPriority2").value.trim(),
       priority3: document.getElementById("appPriority3").value.trim(),
       note: document.getElementById("appNote").value.trim(),
+      applicantName: document.getElementById("appName").value.trim(),
       name: document.getElementById("appName").value.trim(),
       pw: document.getElementById("appPw").value.trim()
     };
@@ -602,6 +629,7 @@
       priority2: document.getElementById("appPriority2").value.trim(),
       priority3: document.getElementById("appPriority3").value.trim(),
       note: document.getElementById("appNote").value.trim(),
+      applicantName: document.getElementById("appName").value.trim(),
       name: document.getElementById("appName").value.trim(),
       pw: document.getElementById("appPw").value.trim()
     };
@@ -622,7 +650,6 @@
   function sendRequest(payload, successMsg) {
     document.getElementById("loadingOverlay").style.display = "flex";
     
-    // Google Apps Script POST 전송 (no-cors 우회)
     fetch(GOOGLE_SCRIPT_URL, {
       method: "POST",
       mode: "no-cors",
@@ -631,12 +658,11 @@
     }).then(() => {
       alert(successMsg);
       resetForm();
-      // 등록 후 1.5초 후 서버 최신 데이터 가져오기
-      setTimeout(() => fetchServerData(true), 1500);
+      setTimeout(() => fetchServerData(true), 1200);
     }).catch(err => {
-      alert("처리 완료 (업데이트 반영 중...)");
+      alert("처리 완료되었습니다.");
       resetForm();
-      setTimeout(() => fetchServerData(true), 1500);
+      setTimeout(() => fetchServerData(true), 1200);
     });
   }
 
@@ -683,11 +709,11 @@
   function prevMonth() { currentMonth--; if (currentMonth < 0) { currentMonth = 11; currentYear--; } renderCalendar(); }
   function nextMonth() { currentMonth++; if (currentMonth > 11) { currentMonth = 0; currentYear++; } renderCalendar(); }
 
-  // 앱 최초 시작
+  // 시작 실행
   resetForm();
   fetchServerData(true);
 
-  // 10초 주기 실시간 서버 Polling 자동 갱신
+  // 10초 실시간 Polling
   setInterval(() => {
     fetchServerData(false);
   }, 10000);

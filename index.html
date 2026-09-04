@@ -99,7 +99,7 @@
 
   <div class="notice-box">
     ※ <strong>신청 가능 기간:</strong> 2026년 9월 16일 ~ 11월 13일 (월~금 평일만 가능)<br>
-    ※ <strong>강의실 안내:</strong> 동시간대 2개 분반 진행 가능 (단, 매주 <strong>목요일은 강의실1만</strong> 운영)<br>
+    ※ <strong>강의실 안내:</strong> 동시간대 2개 분반 진행 가능<br>
     ※ <strong>수강 정원:</strong> 강의실별 차시 당 최대 40명까지 신청 가능합니다.<br>
     ※ <strong>공휴일:</strong> 추석 연휴(09/24~25), 대체공휴일(10/05), 한글날(10/09)은 신청 불가합니다.
   </div>
@@ -259,8 +259,8 @@
   </div>
 
   <script>
-    // 업데이트된 구글 앱스크립트 URL
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxiijWod1q1_UIUTh44qJPYQ6SIK6IUGc1iUBtiY5-2rYlqX3IViHkNw5YStLaUP_ERGA/exec";
+    // 제공된 신규 구글 앱스크립트 URL 반영
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4ZPJ20KKAt3kLDNgvdPXRr2iKpthS7ROFIqwjjYom439Ez7VNKuZ0vrqa0X89tdZrUw/exec";
 
     let currentYear = 2026;
     let currentMonth = 9; // 9월 기본
@@ -314,8 +314,8 @@
     function getSlotStats() {
       const stats = {};
       serverData.forEach(row => {
-        let date = String(row["1순위 희망일"] || row["date"] || '').trim();
-        const time = String(row["1순위 시간"] || row["time"] || '').trim();
+        let date = String(row["1순위 희망일"] || row["1순위날짜"] || row["date"] || '').trim();
+        const time = String(row["1순위 시간"] || row["1순위시간"] || row["time"] || '').trim();
         const room = String(row["강의실"] || row["room"] || '').trim();
         const count = parseInt(row["신청인원"] || row["count"]) || 0;
 
@@ -342,12 +342,11 @@
       const stats = getSlotStats();
       const lastDay = new Date(currentYear, currentMonth, 0).getDate();
 
-      // 첫 번째 날의 요일에 따른 시작 offset 처리 (월=1, 화=2, 수=3, 목=4, 금=5)
       const firstDayObj = new Date(currentYear, currentMonth - 1, 1);
-      let firstDayOfWeek = firstDayObj.getDay(); // 0:일, 1:월, 2:화 ...
-      if (firstDayOfWeek === 0 || firstDayOfWeek === 6) firstDayOfWeek = 1; // 주말일 경우 조정
+      let firstDayOfWeek = firstDayObj.getDay(); 
+      if (firstDayOfWeek === 0 || firstDayOfWeek === 6) firstDayOfWeek = 1; 
       
-      const emptyCells = firstDayOfWeek - 1; // 월요일 기준 빈칸 수
+      const emptyCells = firstDayOfWeek - 1; 
       for (let i = 0; i < emptyCells; i++) {
         grid.innerHTML += `<div class="day-cell empty-cell"></div>`;
       }
@@ -379,13 +378,8 @@
             cellHtml += `<div class="time-slot" onclick="selectSlotFromCalendar('${dateStr}', '${t}')">
               <div class="time-label">${t}</div>`;
             
+            // 모든 요일(목요일 포함)에 강의실1, 강의실2 전면 오픈
             ["강의실1", "강의실2"].forEach(r => {
-              // 매주 목요일(dayOfWeek === 4)은 강의실2 미운영 (막힘)
-              if (dayOfWeek === 4 && r === "강의실2") {
-                cellHtml += `<div class="room-info"><span>${r}</span><span class="status-off">미운영</span></div>`;
-                return;
-              }
-
               const count = stats[`${dateStr}_${t}_${r}`] || 0;
               const isFull = count >= 40;
               cellHtml += `
@@ -421,7 +415,6 @@
       const dateInput = document.getElementById("date");
       const dateVal = dateInput.value;
       const optRoom2 = document.getElementById("optRoom2");
-      const roomSelect = document.getElementById("room");
 
       if (!dateVal) return;
 
@@ -446,13 +439,8 @@
         return;
       }
 
-      // 목요일 선택 시 강의실2 자동 차단 및 강의실1 고정
-      if (dayOfWeek === 4) {
-        optRoom2.disabled = true;
-        roomSelect.value = "강의실1";
-      } else {
-        optRoom2.disabled = false;
-      }
+      // 목요일에도 강의실2 선택 가능하도록 제한 해제
+      optRoom2.disabled = false;
     }
 
     // 폼 제출 (생성 및 수정)
@@ -521,7 +509,7 @@
       document.getElementById(id).style.display = "none";
     }
 
-    // 일반 사용자 신청내역 조회
+    // 일반 사용자 신청내역 조회 (키 매칭 및 공백 완화)
     function searchUserApply() {
       const name = document.getElementById("searchName").value.trim();
       const pw = document.getElementById("searchPw").value.trim();
@@ -535,19 +523,19 @@
       tbody.innerHTML = "";
 
       const userRows = serverData.filter(row => {
-        const rName = String(row["신청자"] || row["applicantName"] || "").trim();
+        const rName = String(row["신청자명"] || row["신청자"] || row["applicantName"] || "").trim();
         const rPw = String(row["비밀번호"] || row["pw"] || "").trim();
         return rName === name && rPw === pw;
       });
 
       if (userRows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#ef4444;">일치하는 신청 내역이 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#ef4444;">일치하는 신청 내역이 없습니다. 입력정보를 확인해주세요.</td></tr>`;
         return;
       }
 
       userRows.forEach(row => {
-        const date = row["1순위 희망일"] || row["date"] || "";
-        const time = row["1순위 시간"] || row["time"] || "";
+        const date = row["1순위 희망일"] || row["1순위날짜"] || row["date"] || "";
+        const time = row["1순위 시간"] || row["1순위시간"] || row["time"] || "";
         const room = row["강의실"] || row["room"] || "";
         const dept = row["학과명"] || row["dept"] || "";
         const className = row["분반명"] || row["className"] || "";
@@ -576,12 +564,12 @@
 
       closeModal('userModal');
 
-      let dateVal = String(target["1순위 희망일"] || target["date"] || "").trim();
+      let dateVal = String(target["1순위 희망일"] || target["1순위날짜"] || target["date"] || "").trim();
       if (dateVal.includes('T')) dateVal = dateVal.split('T')[0];
 
       document.getElementById("editRowIndex").value = rowIndex;
       document.getElementById("date").value = dateVal;
-      document.getElementById("time").value = target["1순위 시간"] || target["time"] || "";
+      document.getElementById("time").value = target["1순위 시간"] || target["1순위시간"] || target["time"] || "";
       document.getElementById("room").value = target["강의실"] || target["room"] || "";
       document.getElementById("count").value = target["신청인원"] || target["count"] || 1;
       document.getElementById("dept").value = target["학과명"] || target["dept"] || "";
@@ -589,7 +577,7 @@
       document.getElementById("priority2").value = target["2순위 가능일시"] || target["priority2"] || "";
       document.getElementById("priority3").value = target["3순위 가능일시"] || target["priority3"] || "";
       document.getElementById("note").value = target["특이사항"] || target["note"] || "";
-      document.getElementById("applicantName").value = target["신청자"] || target["applicantName"] || "";
+      document.getElementById("applicantName").value = target["신청자명"] || target["신청자"] || target["applicantName"] || "";
       document.getElementById("pw").value = target["비밀번호"] || target["pw"] || "";
 
       document.getElementById("formHeaderTitle").querySelector("span").innerText = "✏️ 신청내역 수정하기";
@@ -600,13 +588,18 @@
       document.getElementById("applyForm").scrollIntoView({ behavior: 'smooth' });
     }
 
-    // 신청 삭제
+    // 신청 삭제 (삭제 시 달력 및 엑셀 데이터 동시 반영)
     function deleteApply(rowIndex) {
       if (!confirm("정말로 해당 신청 내역을 삭제하시겠습니까?")) return;
 
       const formData = new URLSearchParams();
       formData.append("action", "delete");
       formData.append("rowIndex", rowIndex);
+
+      // 로컬 메모리의 serverData에서 즉시 제거하여 달력 및 엑셀 다운로드에 바로 반영
+      serverData = serverData.filter(r => (r["_rowIndex"] || r["rowIndex"]) != rowIndex);
+      renderCalendar();
+      if (isAdminLoggedIn) renderAdminTable();
 
       fetch(SCRIPT_URL, {
         method: "POST",
@@ -617,7 +610,6 @@
       .then(() => {
         alert("삭제 처리가 완료되었습니다.");
         closeModal('userModal');
-        closeModal('adminModal');
         setTimeout(loadData, 800);
       })
       .catch(() => {
@@ -652,8 +644,8 @@
         tbody.innerHTML += `
           <tr>
             <td>${idx + 1}</td>
-            <td><strong>${row["신청자"] || row["applicantName"]}</strong></td>
-            <td>${row["1순위 희망일"] || row["date"]}<br>${row["1순위 시간"] || row["time"]}</td>
+            <td><strong>${row["신청자명"] || row["신청자"] || row["applicantName"]}</strong></td>
+            <td>${row["1순위 희망일"] || row["1순위날짜"] || row["date"]}<br>${row["1순위 시간"] || row["1순위시간"] || row["time"]}</td>
             <td>${row["강의실"] || row["room"]}</td>
             <td>${row["학과명"] || row["dept"]} (${row["분반명"] || row["className"]})</td>
             <td>${row["신청인원"] || row["count"]}명</td>
@@ -678,7 +670,7 @@
       csv += "No,신청자,1순위날짜,1순위시간,강의실,학과명,분반명,신청인원,2순위가능일시,3순위가능일시,특이사항\n";
 
       serverData.forEach((row, idx) => {
-        csv += `"${idx+1}","${row["신청자"]||row["applicantName"]}","${row["1순위 희망일"]||row["date"]}","${row["1순위 시간"]||row["time"]}","${row["강의실"]||row["room"]}","${row["학과명"]||row["dept"]}","${row["분반명"]||row["className"]}","${row["신청인원"]||row["count"]}","${row["2순위 가능일시"]||row["priority2"]}","${row["3순위 가능일시"]||row["priority3"]}","${row["특이사항"]||row["note"]||""}"\n`;
+        csv += `"${idx+1}","${row["신청자명"]||row["신청자"]||row["applicantName"]}","${row["1순위 희망일"]||row["1순위날짜"]||row["date"]}","${row["1순위 시간"]||row["1순위시간"]||row["time"]}","${row["강의실"]||row["room"]}","${row["학과명"]||row["dept"]}","${row["분반명"]||row["className"]}","${row["신청인원"]||row["count"]}","${row["2순위 가능일시"]||row["priority2"]}","${row["3순위 가능일시"]||row["priority3"]}","${row["특이사항"]||row["note"]||""}"\n`;
       });
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

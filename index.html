@@ -41,7 +41,7 @@
     
     .day-number { font-weight: bold; font-size: 0.95rem; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
     
-    /* 공휴일 관련 스타일 */
+    /* 공휴일 스타일 */
     .holiday-cell { background: #fff7ed !important; border-color: #ffedd5 !important; }
     .holiday-tag { font-size: 0.72rem; background: #ffedd5; color: #c2410c; padding: 3px 7px; border-radius: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
 
@@ -258,15 +258,13 @@
   </div>
 
   <script>
-    // 전달해주신 신규 배포 URL 반영 완료
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyiJoIhfPft3dw5PwnPtAcNZza2UGEtcmmyQmdoErwUS3WTtcS8QPc13NL6tMWH5nWDDQ/exec";
 
     let currentYear = 2026;
-    let currentMonth = 9; // 9월 기본
+    let currentMonth = 9;
     let serverData = [];
     let isAdminLoggedIn = false;
 
-    // 공휴일 목록 및 아이콘
     const holidays = {
       "2026-09-24": { name: "추석 연휴", icon: "🌕" },
       "2026-09-25": { name: "추석 당일", icon: "🌕" },
@@ -274,9 +272,9 @@
       "2026-10-09": { name: "한글날", icon: "🇰🇷" }
     };
 
-    // 신청 가능 범위 (9월 16일부터 11월 13일까지)
-    const START_DATE = new Date("2026-09-16");
-    const END_DATE = new Date("2026-11-13");
+    // 문자열 비교 방식으로 시간대 오차(Timezone Bug) 완전 방지
+    const START_DATE_STR = "2026-09-16";
+    const END_DATE_STR = "2026-11-13";
 
     window.onload = () => {
       renderCalendar();
@@ -291,7 +289,6 @@
       renderCalendar();
     }
 
-    // JSONP 방식으로 데이터 수신
     function loadData() {
       const oldScript = document.getElementById('jsonp-script');
       if (oldScript) oldScript.remove();
@@ -310,7 +307,6 @@
       }
     }
 
-    // 객체에서 유연한 필드 값 가져오기 헬퍼 함수
     function getValue(row, keys) {
       for (let key of keys) {
         if (row[key] !== undefined && row[key] !== null) {
@@ -367,7 +363,9 @@
 
         const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const holiday = holidays[dateStr];
-        const isApplyPeriod = (dateObj >= START_DATE && dateObj <= END_DATE);
+        
+        // 날짜 문자열 직렬 비교로 9월 16일 정상 허용
+        const isApplyPeriod = (dateStr >= START_DATE_STR && dateStr <= END_DATE_STR);
         const isHoliday = !!holiday;
 
         let cellClass = "day-cell";
@@ -426,7 +424,7 @@
       const selDate = new Date(dateVal);
       const dayOfWeek = selDate.getDay();
 
-      if (selDate < START_DATE || selDate > END_DATE) {
+      if (dateVal < START_DATE_STR || dateVal > END_DATE_STR) {
         alert("신청 가능 기간은 2026년 9월 16일부터 11월 13일까지입니다.");
         dateInput.value = "";
         return;
@@ -445,7 +443,6 @@
       }
     }
 
-    // 신청 제출 (생성 및 수정)
     function submitForm(e) {
       e.preventDefault();
 
@@ -512,7 +509,6 @@
       document.getElementById(id).style.display = "none";
     }
 
-    // 일반 사용자 신청내역 조회
     function searchUserApply() {
       const name = document.getElementById("searchName").value.trim();
       const pw = document.getElementById("searchPw").value.trim();
@@ -560,7 +556,6 @@
       });
     }
 
-    // 수정 폼 로드
     function loadToEditForm(rowId) {
       const target = serverData.find(r => (r.rowId || r.rowIndex) == rowId);
       if (!target) return;
@@ -592,7 +587,6 @@
       document.getElementById("applyForm").scrollIntoView({ behavior: 'smooth' });
     }
 
-    // 신청 삭제
     function deleteApply(rowId, pw) {
       if (!confirm("정말로 해당 신청 내역을 삭제하시겠습니까?")) return;
 
@@ -609,7 +603,6 @@
       formData.append("pw", userPw || "");
       if (isAdminLoggedIn) formData.append("adminPw", "1494");
 
-      // 화면에서 삭제 항목 즉시 제거
       serverData = serverData.filter(r => (r.rowId || r.rowIndex) != rowId);
       renderCalendar();
       if (isAdminLoggedIn) renderAdminTable();
@@ -631,7 +624,6 @@
       });
     }
 
-    // 관리자 로그인
     function openAdminLogin() {
       const pw = prompt("관리자 비밀번호를 입력하세요:");
       if (pw === "1494") {
@@ -682,14 +674,13 @@
       });
     }
 
-    // 엑셀(CSV) 다운로드
     function downloadExcel() {
       if (serverData.length === 0) {
         alert("다운로드할 데이터가 없습니다.");
         return;
       }
 
-      let csv = "\uFEFF"; // UTF-8 BOM
+      let csv = "\uFEFF";
       csv += "No,신청자,1순위날짜,1순위시간,강의실,학과명,분반명,신청인원,2순위가능일시,3순위가능일시,특이사항\n";
 
       serverData.forEach((row, idx) => {

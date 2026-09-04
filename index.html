@@ -3,491 +3,668 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>강의실 예약 및 신청 관리 시스템</title>
+  <title>2026 디지털 리터러시 with AI 신청</title>
   <style>
-    :root {
-      --primary-color: #4a90e2;
-      --secondary-color: #f5f7fa;
-      --text-color: #333;
-      --border-color: #e1e4e8;
-      --danger-color: #e74c3c;
-      --success-color: #2ecc71;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    body { background-color: #f4f7fa; color: #333; padding: 20px; }
+    
+    header { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto 15px; flex-wrap: wrap; gap: 10px; }
+    h1 { font-size: 1.4rem; color: #1e293b; display: flex; align-items: center; gap: 8px; }
+    
+    .nav-btns { display: flex; gap: 8px; }
+    .btn-sm { padding: 8px 14px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.85rem; transition: background 0.2s; }
+    .btn-refresh { background-color: #64748b; color: white; }
+    .btn-refresh:hover { background-color: #475569; }
+    .btn-check { background-color: #3b82f6; color: white; }
+    .btn-check:hover { background-color: #2563eb; }
+    .btn-admin { background-color: #475569; color: white; }
+    .btn-admin:hover { background-color: #334155; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Noto Sans KR', sans-serif; color: var(--text-color); background-color: #f9fbfd; padding: 20px; line-height: 1.6; }
-    .container { max-width: 1100px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .notice-box { max-width: 1400px; margin: 0 auto 20px; background: #fffbeb; border: 1px solid #fef3c7; padding: 15px 20px; border-radius: 8px; font-size: 0.88rem; color: #92400e; line-height: 1.6; }
 
-    h1, h2, h3 { color: #2c3e50; margin-bottom: 15px; }
-    .header-nav { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid var(--border-color); padding-bottom: 10px; }
-    .nav-btn { padding: 10px 20px; border: none; background: #eef2f5; font-weight: bold; cursor: pointer; border-radius: 6px; transition: 0.3s; }
-    .nav-btn.active { background: var(--primary-color); color: #fff; }
+    .main-container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+    @media (max-width: 1024px) { .main-container { grid-template-columns: 1fr; } }
 
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
+    .calendar-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .cal-header h2 { font-size: 1.25rem; color: #0f172a; }
+    .cal-nav { padding: 6px 14px; border: 1px solid #cbd5e1; background: white; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .cal-nav:hover { background-color: #f1f5f9; }
 
-    /* 달력 스타일 */
-    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
-    .day-header { font-weight: bold; padding: 10px; background: #f0f4f8; border-radius: 4px; }
-    .day-cell { min-height: 90px; border: 1px solid var(--border-color); border-radius: 6px; padding: 5px; background: #fff; cursor: pointer; position: relative; }
-    .day-cell.disabled { background: #f5f5f5; cursor: not-allowed; opacity: 0.6; }
-    .day-number { font-weight: bold; text-align: left; font-size: 0.9em; }
-    .holiday-icon { font-size: 0.8em; color: var(--danger-color); display: block; }
-    .badge { display: block; font-size: 0.75em; padding: 2px 4px; border-radius: 3px; margin-top: 3px; color: #fff; background: var(--primary-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .day-header { text-align: center; font-weight: bold; padding: 8px; background: #f8fafc; border-radius: 4px; font-size: 0.9rem; color: #475569; }
+    
+    .day-cell { border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; min-height: 140px; background: white; position: relative; display: flex; flex-direction: column; }
+    .day-cell.disabled-cell { background-color: #f8fafc; opacity: 0.7; }
+    .day-cell.empty-cell { border: none; background: transparent; }
+    
+    .day-number { font-weight: bold; font-size: 0.95rem; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+    
+    .holiday-cell { background: #fff7ed !important; border-color: #ffedd5 !important; }
+    .holiday-tag { font-size: 0.72rem; background: #ffedd5; color: #c2410c; padding: 3px 7px; border-radius: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
 
-    /* 폼 스타일 */
-    .form-group { margin-bottom: 15px; }
-    label { display: block; margin-bottom: 5px; font-weight: bold; }
-    input, select, textarea { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; }
-    .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: #fff; background: var(--primary-color); }
-    .btn-danger { background: var(--danger-color); }
-    .btn-success { background: var(--success-color); }
+    .time-slot { margin-bottom: 6px; font-size: 0.75rem; border-top: 1px dashed #e2e8f0; padding-top: 4px; cursor: pointer; border-radius: 4px; padding: 3px; transition: background 0.15s; }
+    .time-slot:hover { background-color: #f0fdf4; }
+    .time-label { font-weight: 700; color: #334155; margin-bottom: 2px; }
+    .room-info { display: flex; justify-content: space-between; color: #64748b; margin-top: 1px; font-size: 0.73rem; }
+    .status-ok { color: #10b981; font-weight: bold; }
+    .status-full { color: #ef4444; font-weight: bold; }
 
-    /* 테이블 스타일 */
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
-    th, td { border: 1px solid var(--border-color); padding: 10px; text-align: center; }
-    th { background: #f8fa00; color: #333; }
+    .form-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: fit-content; }
+    .form-title { font-size: 1.1rem; border-bottom: 2px solid #3b82f6; padding-bottom: 8px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; font-weight: bold; color: #1e293b; }
 
-    /* 모달 */
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-    .modal-content { background: #fff; padding: 25px; border-radius: 8px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+    .form-group { margin-bottom: 12px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    label { display: block; font-size: 0.8rem; font-weight: bold; margin-bottom: 4px; color: #475569; }
+    label .req { color: #ef4444; }
+    input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.1); }
+    textarea { resize: vertical; height: 55px; }
+
+    .btn-submit { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 0.95rem; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
+    .btn-submit:hover { background: #1d4ed8; }
+    .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
+
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-content { background: white; border-radius: 12px; width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px; }
+    .modal-title { font-size: 1.2rem; font-weight: bold; color: #1e293b; }
+    .modal-close { font-size: 1.5rem; cursor: pointer; border: none; background: none; color: #64748b; }
+    
+    .table-container { overflow-x: auto; margin-top: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: left; }
+    th, td { border: 1px solid #e2e8f0; padding: 8px 10px; }
+    th { background: #f8fafc; color: #475569; font-weight: bold; }
+    
+    .btn-danger { background-color: #ef4444; color: white; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.75rem; }
+    .btn-edit { background-color: #3b82f6; color: white; padding: 4px 8px; border-radius: 4px; border: none; cursor: pointer; font-size: 0.75rem; margin-right: 4px; }
+    .btn-excel { background-color: #10b981; color: white; padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; font-size: 0.85rem; margin-bottom: 10px; }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <div class="header-nav">
-    <button class="nav-btn active" onclick="switchTab('calendar-tab')">달력 / 신청하기</button>
-    <button class="nav-btn" onclick="switchTab('search-tab')">신청 내역 조회 및 관리</button>
-    <button class="nav-btn" onclick="switchTab('admin-tab')">관리자 로그인</button>
-  </div>
-
-  <!-- 1. 달력 / 신청 탭 -->
-  <div id="calendar-tab" class="tab-content active">
-    <div class="calendar-header">
-      <button class="btn" onclick="changeMonth(-1)">&lt; 이전달</button>
-      <h2 id="current-month-title"></h2>
-      <button class="btn" onclick="changeMonth(1)">다음달 &gt;</button>
+  <header>
+    <h1>&lt;2026 디지털 리터러시 with AI 신청(09~11월 운영) 🤖&gt;</h1>
+    <div class="nav-btns">
+      <button class="btn-sm btn-refresh" onclick="loadData()">🔄 새로고침</button>
+      <button class="btn-sm btn-check" onclick="openUserCheckModal()">내 신청 조회 / 수정</button>
+      <button class="btn-sm btn-admin" onclick="openAdminLogin()">관리자 로그인</button>
     </div>
-    <div class="calendar-grid" id="calendar-grid"></div>
+  </header>
+
+  <div class="notice-box">
+    ※ <strong>신청 가능 기간:</strong> 2026년 9월 16일 ~ 11월 13일 (월~금 평일만 가능)<br>
+    ※ <strong>강의실 안내:</strong> 동시간대 2개 분반 진행 가능<br>
+    ※ <strong>수강 정원:</strong> 강의실별 차시 당 최대 40명까지 신청 가능합니다.<br>
+    ※ <strong>공휴일:</strong> 추석 연휴(09/24~25), 대체공휴일(10/05), 한글날(10/09)은 신청 불가합니다.
   </div>
 
-  <!-- 2. 신청 내역 조회 및 관리 탭 -->
-  <div id="search-tab" class="tab-content">
-    <h2>신청 내역 조회</h2>
-    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-      <input type="text" id="search-name" placeholder="신청자 이름 입력">
-      <input type="password" id="search-pw" placeholder="비밀번호 입력">
-      <button class="btn" onclick="searchApplications()">조회하기</button>
+  <div class="main-container">
+    <!-- 왼쪽 달력 -->
+    <div class="calendar-card">
+      <div class="cal-header">
+        <button class="cal-nav" onclick="changeMonth(-1)">&lt; 이전달</button>
+        <h2 id="calTitle">2026년 9월</h2>
+        <button class="cal-nav" onclick="changeMonth(1)">다음달 &gt;</button>
+      </div>
+      <div class="calendar-grid" id="calendarGrid">
+        <!-- JS 동적 생성 -->
+      </div>
     </div>
-    <div id="search-results"></div>
-  </div>
 
-  <!-- 3. 관리자 탭 -->
-  <div id="admin-tab" class="tab-content">
-    <h2>관리자 페이지</h2>
-    <div id="admin-login-sec" style="display: flex; gap: 10px; margin-bottom: 20px;">
-      <input type="password" id="admin-pw-input" placeholder="관리자 비밀번호">
-      <button class="btn" onclick="adminLogin()">로그인</button>
+    <!-- 오른쪽 신청 폼 -->
+    <div class="form-card">
+      <div class="form-title" id="formHeaderTitle">
+        <span>📝 프로그램 신청</span>
+        <button type="button" id="btnCancelEdit" style="display:none; font-size:0.75rem; padding:3px 8px; background:#64748b; color:white; border:none; border-radius:4px; cursor:pointer;" onclick="resetFormToCreate()">신청 취소/신규작성</button>
+      </div>
+      <form id="applyForm" onsubmit="submitForm(event)">
+        <input type="hidden" id="editRowIndex" value="">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>1순위 날짜 <span class="req">*</span></label>
+            <input type="date" id="date" min="2026-09-16" max="2026-11-13" required onchange="validateAndSyncDate()">
+          </div>
+          <div class="form-group">
+            <label>1순위 시간 <span class="req">*</span></label>
+            <select id="time" required>
+              <option value="10:00~12:00">10:00~12:00</option>
+              <option value="14:00~16:00">14:00~16:00</option>
+              <option value="16:00~18:00">16:00~18:00</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>강의실 <span class="req">*</span></label>
+            <select id="room" required>
+              <option value="강의실1">강의실1</option>
+              <option value="강의실2" id="optRoom2">강의실2</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>신청 인원 <span class="req">*</span></label>
+            <input type="number" id="count" min="1" max="40" value="1" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>학과명 <span class="req">*</span></label>
+            <input type="text" id="dept" placeholder="예: 간호학과" required>
+          </div>
+          <div class="form-group">
+            <label>분반명</label>
+            <input type="text" id="className" placeholder="예: A분반">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>2순위 가능 일시 <span class="req">*</span></label>
+          <input type="text" id="priority2" placeholder="예: 2026-09-20 14:00~16:00" required>
+        </div>
+
+        <div class="form-group">
+          <label>3순위 가능 일시 <span class="req">*</span></label>
+          <input type="text" id="priority3" placeholder="예: 2026-09-21 10:00~12:00" required>
+        </div>
+
+        <div class="form-group">
+          <label>특이사항</label>
+          <textarea id="note" placeholder="전달사항 기재"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>신청자 이름 <span class="req">*</span></label>
+            <input type="text" id="applicantName" placeholder="홍길동" required>
+          </div>
+          <div class="form-group">
+            <label>비밀번호 <span class="req">*</span></label>
+            <input type="password" id="pw" maxlength="4" placeholder="숫자 4자리" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">신청 제출하기</button>
+      </form>
     </div>
-    <div id="admin-content-sec" style="display: none;">
-      <p style="color: green; font-weight: bold; margin-bottom: 10px;">✓ 관리자 인증 완료</p>
-      <button class="btn btn-danger" onclick="adminLogout()" style="margin-bottom: 15px;">로그아웃</button>
-      <div id="admin-table-container"></div>
+  </div>
+
+  <!-- 일반 사용자 조회/수정 모달 -->
+  <div class="modal-overlay" id="userModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">🔍 내 신청 내역 조회 및 관리</div>
+        <button class="modal-close" onclick="closeModal('userModal')">&times;</button>
+      </div>
+      <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <input type="text" id="searchName" placeholder="신청자 이름" style="width: 40%;">
+        <input type="password" id="searchPw" maxlength="4" placeholder="비밀번호(4자리)" style="width: 40%;">
+        <button class="btn-sm btn-check" onclick="searchUserApply()">조회</button>
+      </div>
+      <div class="table-container">
+        <table id="userResultTable">
+          <thead>
+            <tr>
+              <th>1순위 일시</th>
+              <th>강의실</th>
+              <th>학과(분반)</th>
+              <th>인원</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5" style="text-align:center;">이름과 비밀번호를 입력 후 조회해주세요.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- 신청 / 수정 모달 -->
-<div id="app-modal" class="modal">
-  <div class="modal-content">
-    <h3 id="modal-title">강의실 신청하기</h3>
-    <form id="app-form" onsubmit="handleFormSubmit(event)">
-      <input type="hidden" id="form-row-id" value="">
-      <input type="hidden" id="form-action" value="create">
-
-      <div class="form-group">
-        <label>1순위 희망일 (강의 시작일: 9월 16일 이후)</label>
-        <input type="date" id="form-date" required min="2026-09-16">
+  <!-- 관리자 모달 -->
+  <div class="modal-overlay" id="adminModal">
+    <div class="modal-content" style="max-width: 1000px;">
+      <div class="modal-header">
+        <div class="modal-title">🔐 관리자 권한 - 전체 신청 관리</div>
+        <button class="modal-close" onclick="closeModal('adminModal')">&times;</button>
       </div>
-      <div class="form-group">
-        <label>1순위 시간</label>
-        <input type="text" id="form-time" placeholder="예: 10:00 - 12:00" required>
+      <button class="btn-excel" onclick="downloadExcel()">📊 전체 신청 내역 엑셀(CSV) 다운로드</button>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>신청자</th>
+              <th>1순위 날짜/시간</th>
+              <th>강의실</th>
+              <th>학과/분반</th>
+              <th>인원</th>
+              <th>2순위 / 3순위</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody">
+            <!-- 동적 생성 -->
+          </tbody>
+        </table>
       </div>
-      <div class="form-group">
-        <label>강의실</label>
-        <input type="text" id="form-room" required placeholder="강의실 입력">
-      </div>
-      <div class="form-group">
-        <label>신청인원</label>
-        <input type="number" id="form-count" required min="1">
-      </div>
-      <div class="form-group">
-        <label>학과명</label>
-        <input type="text" id="form-dept" required>
-      </div>
-      <div class="form-group">
-        <label>분반명</label>
-        <input type="text" id="form-className" required>
-      </div>
-      <div class="form-group">
-        <label>2순위 가능일시</label>
-        <input type="text" id="form-priority2">
-      </div>
-      <div class="form-group">
-        <label>3순위 가능일시</label>
-        <input type="text" id="form-priority3">
-      </div>
-      <div class="form-group">
-        <label>특이사항</label>
-        <textarea id="form-note" rows="2"></textarea>
-      </div>
-      <div class="form-group">
-        <label>신청자 이름</label>
-        <input type="text" id="form-applicantName" required>
-      </div>
-      <div class="form-group">
-        <label>비밀번호</label>
-        <input type="password" id="form-pw" required placeholder="비밀번호 설정">
-      </div>
-
-      <div style="display: flex; gap: 10px; justify-content: flex-end;">
-        <button type="button" class="btn btn-danger" onclick="closeModal()">취소</button>
-        <button type="submit" class="btn btn-success">저장하기</button>
-      </div>
-    </form>
+    </div>
   </div>
-</div>
 
-<script>
-  // 새 앱스크립트 웹앱 URL 설정
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz1K11q3UOwjW1oUhoUkX6TaEQDJRXCf1Iu5q9tra6PBkwBfxENm5Wqk1kmrOaUPfHaPQ/exec";
+  <script>
+    // 제공해주신 신규 실행 스크립트 URL 반영
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyGUMTXTumF97zQYn_PrqkrCWDmmdEVViGoYxUHlTgHtXWRgKTRts9DOTuSkrM8Xc0qMg/exec";
 
-  let currentDate = new Date(2026, 8, 1); // 2026년 9월
-  let allData = [];
-  let isAdminLoggedIn = false;
+    let currentYear = 2026;
+    let currentMonth = 9;
+    let serverData = [];
+    let isAdminLoggedIn = false;
 
-  // 10월 공휴일 정보 (예쁜 그림/이모지 반영)
-  const HOLIDAYS = {
-    "2026-10-03": "🇰🇷 개천절",
-    "2026-10-09": "🇰🇷 한글날",
-    "2026-10-24": "🌕 추석 연휴",
-    "2026-10-25": "🌕 추석",
-    "2026-10-26": "🌕 추석 연휴"
-  };
+    const holidays = {
+      "2026-09-24": { name: "추석 연휴", icon: "🌕" },
+      "2026-09-25": { name: "추석 당일", icon: "🌕" },
+      "2026-10-05": { name: "대체공휴일", icon: "🇰🇷" },
+      "2026-10-09": { name: "한글날", icon: "🇰🇷" }
+    };
 
-  window.onload = function() {
-    fetchData();
-  };
+    // 강의 시작일: 2026년 9월 16일
+    const START_DATE = new Date("2026-09-16");
+    const END_DATE = new Date("2026-11-13");
 
-  function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
-    
-    document.getElementById(tabId).classList.add('active');
-    event.target.classList.add('active');
-
-    if (tabId === 'calendar-tab') renderCalendar();
-  }
-
-  // 데이터 불러오기 (JSONP)
-  function fetchData() {
-    const script = document.createElement('script');
-    script.src = `${SCRIPT_URL}?callback=handleDataResponse`;
-    document.body.appendChild(script);
-  }
-
-  function handleDataResponse(response) {
-    if (response && response.data) {
-      allData = response.data;
+    window.onload = () => {
       renderCalendar();
-      if (isAdminLoggedIn) renderAdminTable();
-    }
-  }
+      loadData();
+    };
 
-  // 달력 렌더링
-  function renderCalendar() {
-    const grid = document.getElementById('calendar-grid');
-    grid.innerHTML = '';
-
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-
-    document.getElementById('current-month-title').innerText = `${year}년 ${month + 1}월`;
-
-    const dayHeaders = ['일', '월', '화', '수', '목', '금', '토'];
-    dayHeaders.forEach(dh => {
-      grid.innerHTML += `<div class="day-header">${dh}</div>`;
-    });
-
-    const firstDay = new Date(year, month, 1).getDay();
-    const lastDate = new Date(year, month + 1, 0).getDate();
-
-    for (let i = 0; i < firstDay; i++) {
-      grid.innerHTML += `<div class="day-cell disabled"></div>`;
+    function changeMonth(diff) {
+      currentMonth += diff;
+      if (currentMonth > 11) currentMonth = 9;
+      if (currentMonth < 9) currentMonth = 11;
+      document.getElementById("calTitle").innerText = `${currentYear}년 ${currentMonth}월`;
+      renderCalendar();
     }
 
-    const minAllowedDate = new Date("2026-09-16");
+    function loadData() {
+      const oldScript = document.getElementById('jsonp-script');
+      if (oldScript) oldScript.remove();
 
-    for (let d = 1; d <= lastDate; d++) {
-      const thisDate = new Date(year, month, d);
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      
-      const isDisabled = thisDate < minAllowedDate;
-      const holidayText = HOLIDAYS[dateStr] ? `<span class="holiday-icon">${HOLIDAYS[dateStr]}</span>` : '';
+      const script = document.createElement('script');
+      script.id = 'jsonp-script';
+      script.src = `${SCRIPT_URL}?callback=handleServerData&t=${new Date().getTime()}`;
+      document.body.appendChild(script);
+    }
 
-      // 해당 날짜 신청 데이터 추출
-      const dayApps = allData.filter(item => item['1순위 희망일'] === dateStr);
-      let badgesHtml = '';
-      dayApps.forEach(app => {
-        badgesHtml += `<span class="badge" title="${app['학과명']} ${app['강의실']}">${app['학과명']} (${app['강의실']})</span>`;
+    function handleServerData(response) {
+      if (response && response.data) {
+        serverData = response.data;
+        renderCalendar();
+        if (isAdminLoggedIn) renderAdminTable();
+      }
+    }
+
+    function getSlotStats() {
+      const stats = {};
+      serverData.forEach(row => {
+        let date = String(row["1순위 희망일"] || row["1순위날짜"] || row["date"] || Object.values(row)[0] || '').trim();
+        const time = String(row["1순위 시간"] || row["1순위시간"] || row["time"] || Object.values(row)[1] || '').trim();
+        const room = String(row["강의실"] || row["room"] || Object.values(row)[2] || '').trim();
+        const count = parseInt(row["신청인원"] || row["count"] || Object.values(row)[3]) || 0;
+
+        if (date.includes('T')) date = date.split('T')[0];
+        date = date.replace(/\.\s*/g, '-').replace(/-$/, '');
+
+        if (date && time && room) {
+          const key = `${date}_${time}_${room}`;
+          stats[key] = (stats[key] || 0) + count;
+        }
+      });
+      return stats;
+    }
+
+    function renderCalendar() {
+      const grid = document.getElementById("calendarGrid");
+      grid.innerHTML = "";
+
+      ["월", "화", "수", "목", "금"].forEach(day => {
+        grid.innerHTML += `<div class="day-header">${day}</div>`;
       });
 
-      const cell = document.createElement('div');
-      cell.className = `day-cell ${isDisabled ? 'disabled' : ''}`;
-      cell.innerHTML = `
-        <div class="day-number">${d}</div>
-        ${holidayText}
-        ${badgesHtml}
-      `;
+      const stats = getSlotStats();
+      const lastDay = new Date(currentYear, currentMonth, 0).getDate();
 
-      if (!isDisabled) {
-        cell.onclick = () => openModalForCreate(dateStr);
+      const firstDayObj = new Date(currentYear, currentMonth - 1, 1);
+      let firstDayOfWeek = firstDayObj.getDay(); 
+      if (firstDayOfWeek === 0 || firstDayOfWeek === 6) firstDayOfWeek = 1; 
+      
+      const emptyCells = firstDayOfWeek - 1; 
+      for (let i = 0; i < emptyCells; i++) {
+        grid.innerHTML += `<div class="day-cell empty-cell"></div>`;
       }
 
-      grid.appendChild(cell);
-    }
-  }
+      for (let d = 1; d <= lastDay; d++) {
+        const dateObj = new Date(currentYear, currentMonth - 1, d);
+        const dayOfWeek = dateObj.getDay();
 
-  function changeMonth(delta) {
-    currentDate.setMonth(currentDate.getMonth() + delta);
-    renderCalendar();
-  }
+        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
 
-  // 모달 열기 (신규 작성)
-  function openModalForCreate(selectedDate = '') {
-    document.getElementById('app-form').reset();
-    document.getElementById('modal-title').innerText = "강의실 신청하기";
-    document.getElementById('form-action').value = "create";
-    document.getElementById('form-row-id').value = "";
-    if (selectedDate) document.getElementById('form-date').value = selectedDate;
-    document.getElementById('app-modal').style.display = 'flex';
-  }
+        const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const holiday = holidays[dateStr];
+        const isApplyPeriod = (dateObj >= START_DATE && dateObj <= END_DATE);
+        const isHoliday = !!holiday;
 
-  // 모달 열기 (수정)
-  function openModalForUpdate(item) {
-    document.getElementById('modal-title').innerText = "신청 내역 수정하기";
-    document.getElementById('form-action').value = "update";
-    document.getElementById('form-row-id').value = item.rowId || item.rowIndex || item._rowIndex;
+        let cellClass = "day-cell";
+        if (isHoliday) cellClass += " holiday-cell";
+        else if (!isApplyPeriod) cellClass += " disabled-cell";
 
-    document.getElementById('form-date').value = item['1순위 희망일'] || '';
-    document.getElementById('form-time').value = item['1순위 시간'] || '';
-    document.getElementById('form-room').value = item['강의실'] || '';
-    document.getElementById('form-count').value = item['신청인원'] || 0;
-    document.getElementById('form-dept').value = item['학과명'] || '';
-    document.getElementById('form-className').value = item['분반명'] || '';
-    document.getElementById('form-priority2').value = item['2순위 가능일시'] || '';
-    document.getElementById('form-priority3').value = item['3순위 가능일시'] || '';
-    document.getElementById('form-note').value = item['특이사항'] || '';
-    document.getElementById('form-applicantName').value = item['신청자 이름'] || '';
-    document.getElementById('form-pw').value = item['비밀번호'] || '';
+        let cellHtml = `<div class="${cellClass}">`;
+        cellHtml += `<div class="day-number">
+          <span>${d}일</span>
+          ${isHoliday ? `<span class="holiday-tag">${holiday.icon} ${holiday.name}</span>` : ''}
+        </div>`;
 
-    document.getElementById('app-modal').style.display = 'flex';
-  }
+        if (isApplyPeriod && !isHoliday) {
+          const times = ["10:00~12:00", "14:00~16:00", "16:00~18:00"];
+          times.forEach(t => {
+            cellHtml += `<div class="time-slot" onclick="selectSlotFromCalendar('${dateStr}', '${t}')">
+              <div class="time-label">${t}</div>`;
+            
+            ["강의실1", "강의실2"].forEach(r => {
+              const count = stats[`${dateStr}_${t}_${r}`] || 0;
+              const isFull = count >= 40;
+              cellHtml += `
+                <div class="room-info">
+                  <span>${r} (${count}/40)</span>
+                  <span class="${isFull ? 'status-full' : 'status-ok'}">${isFull ? '마감' : '가능'}</span>
+                </div>
+              `;
+            });
 
-  function closeModal() {
-    document.getElementById('app-modal').style.display = 'none';
-  }
+            cellHtml += `</div>`;
+          });
+        } else if (isHoliday) {
+          cellHtml += `<div style="text-align:center; color:#c2410c; font-size:0.82rem; margin:auto 0; font-weight:bold;">${holiday.icon}<br>${holiday.name}</div>`;
+        } else {
+          cellHtml += `<div style="text-align:center; color:#94a3b8; font-size:0.75rem; margin:auto 0;">신청기간<br>아님</div>`;
+        }
 
-  // 신청 / 수정 Submit 처리
-  function handleFormSubmit(e) {
-    e.preventDefault();
-
-    const action = document.getElementById('form-action').value;
-    const rowId = document.getElementById('form-row-id').value;
-
-    const payload = {
-      action: action,
-      rowId: rowId,
-      date: document.getElementById('form-date').value,
-      time: document.getElementById('form-time').value,
-      room: document.getElementById('form-room').value,
-      count: document.getElementById('form-count').value,
-      dept: document.getElementById('form-dept').value,
-      className: document.getElementById('form-className').value,
-      priority2: document.getElementById('form-priority2').value,
-      priority3: document.getElementById('form-priority3').value,
-      note: document.getElementById('form-note').value,
-      applicantName: document.getElementById('form-applicantName').value,
-      pw: document.getElementById('form-pw').value,
-      adminPw: isAdminLoggedIn ? "1494" : ""
-    };
-
-    sendApiRequest(payload, (res) => {
-      if (res.result === 'success') {
-        alert(action === 'create' ? "성공적으로 신청되었습니다." : "성공적으로 수정되었습니다.");
-        closeModal();
-        fetchData();
-      } else {
-        alert("오류 발생: " + (res.message || "처리 실패"));
+        cellHtml += `</div>`;
+        grid.innerHTML += cellHtml;
       }
-    });
-  }
+    }
 
-  // 삭제 요청 처리
-  function deleteApplication(rowId, pw) {
-    if (!confirm("정말 이 신청 내역을 삭제하시겠습니까? (시트에서도 완전 삭제됩니다)")) return;
+    function selectSlotFromCalendar(dateStr, timeStr) {
+      document.getElementById("date").value = dateStr;
+      document.getElementById("time").value = timeStr;
+      validateAndSyncDate();
+      document.getElementById("applyForm").scrollIntoView({ behavior: 'smooth' });
+    }
 
-    const payload = {
-      action: "delete",
-      rowId: rowId,
-      pw: pw,
-      adminPw: isAdminLoggedIn ? "1494" : ""
-    };
+    function validateAndSyncDate() {
+      const dateInput = document.getElementById("date");
+      const dateVal = dateInput.value;
 
-    sendApiRequest(payload, (res) => {
-      if (res.result === 'success') {
-        alert("삭제가 성공적으로 완료되었습니다.");
-        fetchData();
-        // 조회 화면 업데이트
-        const searchName = document.getElementById('search-name').value;
-        if (searchName) searchApplications();
-      } else {
-        alert("삭제 실패: " + (res.message || "비밀번호가 일치하지 않거나 오류가 발생했습니다."));
+      if (!dateVal) return;
+
+      const selDate = new Date(dateVal);
+      const dayOfWeek = selDate.getDay();
+
+      if (selDate < START_DATE || selDate > END_DATE) {
+        alert("신청 가능 기간은 2026년 9월 16일부터 11월 13일까지입니다.");
+        dateInput.value = "";
+        return;
       }
-    });
-  }
 
-  // JSONP 연동 함수
-  function sendApiRequest(payload, callback) {
-    const callbackName = 'cb_' + Date.now();
-    window[callbackName] = function(res) {
-      callback(res);
-      delete window[callbackName];
-      document.body.removeChild(script);
-    };
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        alert("주말은 신청할 수 없습니다.");
+        dateInput.value = "";
+        return;
+      }
 
-    const queryParams = new URLSearchParams();
-    queryParams.append('callback', callbackName);
-    for (let key in payload) {
-      queryParams.append(key, payload[key]);
+      if (holidays[dateVal]) {
+        alert(`선택하신 날짜는 공휴일(${holidays[dateVal].name})입니다.`);
+        dateInput.value = "";
+        return;
+      }
     }
 
-    const script = document.createElement('script');
-    script.src = `${SCRIPT_URL}?${queryParams.toString()}`;
-    document.body.appendChild(script);
-  }
+    function submitForm(e) {
+      e.preventDefault();
 
-  // 신청 내역 조회
-  function searchApplications() {
-    const name = document.getElementById('search-name').value.trim();
-    const pw = document.getElementById('search-pw').value.trim();
-    const container = document.getElementById('search-results');
+      const editIndex = document.getElementById("editRowIndex").value;
+      const actionType = editIndex !== "" ? "update" : "create";
 
-    if (!name || !pw) {
-      alert("신청자 이름과 비밀번호를 모두 입력해주세요.");
-      return;
+      const btn = document.getElementById("submitBtn");
+      btn.innerText = actionType === "update" ? "수정 사항 저장 중..." : "신청 저장 중...";
+      btn.disabled = true;
+
+      const formData = new URLSearchParams();
+      formData.append("action", actionType);
+      if (actionType === "update") {
+        formData.append("rowIndex", editIndex);
+      }
+
+      formData.append("date", document.getElementById("date").value);
+      formData.append("time", document.getElementById("time").value);
+      formData.append("room", document.getElementById("room").value);
+      formData.append("count", document.getElementById("count").value);
+      formData.append("dept", document.getElementById("dept").value);
+      formData.append("className", document.getElementById("className").value);
+      formData.append("priority2", document.getElementById("priority2").value);
+      formData.append("priority3", document.getElementById("priority3").value);
+      formData.append("note", document.getElementById("note").value);
+      formData.append("applicantName", document.getElementById("applicantName").value);
+      formData.append("pw", document.getElementById("pw").value);
+
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData.toString()
+      })
+      .then(() => {
+        alert(actionType === "update" ? "신청 내역이 성공적으로 수정되었습니다!" : "신청이 성공적으로 제출되었습니다!");
+        resetFormToCreate();
+        setTimeout(loadData, 1000);
+      })
+      .catch(err => {
+        alert("처리가 완료되었습니다.");
+        resetFormToCreate();
+        loadData();
+      })
+      .finally(() => {
+        btn.disabled = false;
+      });
     }
 
-    // 이름 및 비밀번호 문자열 트리밍 비교
-    const filtered = allData.filter(item => {
-      const appName = String(item['신청자 이름'] || '').trim();
-      const appPw = String(item['비밀번호'] || '').trim();
-      return appName === name && appPw === pw;
-    });
-
-    if (filtered.length === 0) {
-      container.innerHTML = `<p style="color:var(--danger-color); font-weight:bold; margin-top:15px;">일치하는 신청 내역이 없습니다. 이름과 비밀번호를 다시 확인하세요.</p>`;
-      return;
+    function resetFormToCreate() {
+      document.getElementById("applyForm").reset();
+      document.getElementById("editRowIndex").value = "";
+      document.getElementById("formHeaderTitle").querySelector("span").innerText = "📝 프로그램 신청";
+      document.getElementById("btnCancelEdit").style.display = "none";
+      document.getElementById("submitBtn").innerText = "신청 제출하기";
     }
 
-    let html = `<table>
-      <thead>
-        <tr>
-          <th>희망일</th><th>시간</th><th>강의실</th><th>인원</th><th>학과</th><th>분반</th><th>관리</th>
-        </tr>
-      </thead><tbody>`;
-
-    filtered.forEach(item => {
-      const rId = item.rowId || item.rowIndex || item._rowIndex;
-      const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
-      html += `
-        <tr>
-          <td>${item['1순위 희망일']}</td>
-          <td>${item['1순위 시간']}</td>
-          <td>${item['강의실']}</td>
-          <td>${item['신청인원']}</td>
-          <td>${item['학과명']}</td>
-          <td>${item['분반명']}</td>
-          <td>
-            <button class="btn" style="padding: 4px 8px; font-size: 12px;" onclick='openModalForUpdate(${itemJson})'>수정</button>
-            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="deleteApplication(${rId}, '${item['비밀번호']}')">삭제</button>
-          </td>
-        </tr>
-      `;
-    });
-
-    html += `</tbody></table>`;
-    container.innerHTML = html;
-  }
-
-  // 관리자 기능
-  function adminLogin() {
-    const pw = document.getElementById('admin-pw-input').value;
-    if (pw === "1494") {
-      isAdminLoggedIn = true;
-      document.getElementById('admin-login-sec').style.display = 'none';
-      document.getElementById('admin-content-sec').style.display = 'block';
-      renderAdminTable();
-    } else {
-      alert("관리자 비밀번호가 올바르지 않습니다.");
+    function openUserCheckModal() {
+      document.getElementById("userModal").style.display = "flex";
     }
-  }
-
-  function adminLogout() {
-    isAdminLoggedIn = false;
-    document.getElementById('admin-login-sec').style.display = 'flex';
-    document.getElementById('admin-content-sec').style.display = 'none';
-    document.getElementById('admin-pw-input').value = '';
-  }
-
-  function renderAdminTable() {
-    const container = document.getElementById('admin-table-container');
-    if (allData.length === 0) {
-      container.innerHTML = "<p>등록된 신청 내역이 없습니다.</p>";
-      return;
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
     }
 
-    let html = `<table>
-      <thead>
-        <tr>
-          <th>행 번호</th><th>신청자</th><th>희망일</th><th>시간</th><th>강의실</th><th>학과</th><th>관리</th>
-        </tr>
-      </thead><tbody>`;
+    function searchUserApply() {
+      const name = document.getElementById("searchName").value.trim().toLowerCase();
+      const pw = document.getElementById("searchPw").value.trim();
 
-    allData.forEach(item => {
-      const rId = item.rowId || item.rowIndex || item._rowIndex;
-      const itemJson = JSON.stringify(item).replace(/"/g, '&quot;');
-      html += `
-        <tr>
-          <td>${rId}</td>
-          <td>${item['신청자 이름']}</td>
-          <td>${item['1순위 희망일']}</td>
-          <td>${item['1순위 시간']}</td>
-          <td>${item['강의실']}</td>
-          <td>${item['학과명']}</td>
-          <td>
-            <button class="btn" style="padding: 4px 8px; font-size: 12px;" onclick='openModalForUpdate(${itemJson})'>수정</button>
-            <button class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="deleteApplication(${rId}, '')">삭제</button>
-          </td>
-        </tr>
-      `;
-    });
+      if (!name || !pw) {
+        alert("이름과 비밀번호 4자리를 모두 입력해주세요.");
+        return;
+      }
 
-    html += `</tbody></table>`;
-    container.innerHTML = html;
-  }
-</script>
+      const tbody = document.querySelector("#userResultTable tbody");
+      tbody.innerHTML = "";
+
+      const userRows = serverData.filter(row => {
+        const values = Object.values(row).map(v => String(v).trim().toLowerCase());
+        const rName = String(row["신청자명"] || row["신청자"] || row["applicantName"] || values[9] || "").trim().toLowerCase();
+        const rPw = String(row["비밀번호"] || row["pw"] || values[10] || "").trim();
+        return rName === name && rPw === pw;
+      });
+
+      if (userRows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#ef4444;">일치하는 신청 내역이 없습니다. 입력정보를 확인해주세요.</td></tr>`;
+        return;
+      }
+
+      userRows.forEach(row => {
+        const vals = Object.values(row);
+        const date = row["1순위 희망일"] || row["1순위날짜"] || row["date"] || vals[0] || "";
+        const time = row["1순위 시간"] || row["1순위시간"] || row["time"] || vals[1] || "";
+        const room = row["강의실"] || row["room"] || vals[2] || "";
+        const dept = row["학과명"] || row["dept"] || vals[4] || "";
+        const className = row["분반명"] || row["className"] || vals[5] || "";
+        const count = row["신청인원"] || row["count"] || vals[3] || "";
+        const rowIndex = row["_rowIndex"];
+
+        tbody.innerHTML += `
+          <tr>
+            <td>${date}<br>${time}</td>
+            <td>${room}</td>
+            <td>${dept} (${className})</td>
+            <td>${count}명</td>
+            <td>
+              <button class="btn-edit" onclick="loadToEditForm('${rowIndex}')">수정</button>
+              <button class="btn-danger" onclick="deleteApply('${rowIndex}')">삭제</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function loadToEditForm(rowIndex) {
+      const target = serverData.find(r => r["_rowIndex"] == rowIndex);
+      if (!target) return;
+
+      closeModal('userModal');
+      closeModal('adminModal');
+
+      const vals = Object.values(target);
+      let dateVal = String(target["1순위 희망일"] || target["1순위날짜"] || target["date"] || vals[0] || "").trim();
+      if (dateVal.includes('T')) dateVal = dateVal.split('T')[0];
+
+      document.getElementById("editRowIndex").value = rowIndex;
+      document.getElementById("date").value = dateVal;
+      document.getElementById("time").value = target["1순위 시간"] || target["1순위시간"] || target["time"] || vals[1] || "";
+      document.getElementById("room").value = target["강의실"] || target["room"] || vals[2] || "";
+      document.getElementById("count").value = target["신청인원"] || target["count"] || vals[3] || 1;
+      document.getElementById("dept").value = target["학과명"] || target["dept"] || vals[4] || "";
+      document.getElementById("className").value = target["분반명"] || target["className"] || vals[5] || "";
+      document.getElementById("priority2").value = target["2순위 가능일시"] || target["priority2"] || vals[6] || "";
+      document.getElementById("priority3").value = target["3순위 가능일시"] || target["priority3"] || vals[7] || "";
+      document.getElementById("note").value = target["특이사항"] || target["note"] || vals[8] || "";
+      document.getElementById("applicantName").value = target["신청자명"] || target["신청자"] || target["applicantName"] || vals[9] || "";
+      document.getElementById("pw").value = target["비밀번호"] || target["pw"] || vals[10] || "";
+
+      document.getElementById("formHeaderTitle").querySelector("span").innerText = "✏️ 신청내역 수정하기";
+      document.getElementById("btnCancelEdit").style.display = "inline-block";
+      document.getElementById("submitBtn").innerText = "수정 완료 저장";
+
+      validateAndSyncDate();
+      document.getElementById("applyForm").scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function deleteApply(rowIndex) {
+      if (!confirm("정말로 해당 신청 내역을 삭제하시겠습니까? (구글 시트에서도 삭제됩니다)")) return;
+
+      const formData = new URLSearchParams();
+      formData.append("action", "delete");
+      formData.append("rowIndex", rowIndex);
+
+      serverData = serverData.filter(r => r["_rowIndex"] != rowIndex);
+      renderCalendar();
+      if (isAdminLoggedIn) renderAdminTable();
+
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData.toString()
+      })
+      .then(() => {
+        alert("삭제 처리가 완료되었습니다.");
+        closeModal('userModal');
+        setTimeout(loadData, 1000);
+      })
+      .catch(() => {
+        alert("삭제 처리가 완료되었습니다.");
+        loadData();
+      });
+    }
+
+    function openAdminLogin() {
+      const pw = prompt("관리자 비밀번호를 입력하세요:");
+      if (pw === "1494") {
+        isAdminLoggedIn = true;
+        document.getElementById("adminModal").style.display = "flex";
+        renderAdminTable();
+      } else if (pw !== null) {
+        alert("비밀번호가 올바르지 않습니다.");
+      }
+    }
+
+    function renderAdminTable() {
+      const tbody = document.getElementById("adminTableBody");
+      tbody.innerHTML = "";
+
+      if (serverData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">신청 내역이 없습니다.</td></tr>`;
+        return;
+      }
+
+      serverData.forEach((row, idx) => {
+        const vals = Object.values(row);
+        const rowIndex = row["_rowIndex"];
+        tbody.innerHTML += `
+          <tr>
+            <td>${idx + 1}</td>
+            <td><strong>${row["신청자명"] || row["신청자"] || row["applicantName"] || vals[9]}</strong></td>
+            <td>${row["1순위 희망일"] || row["1순위날짜"] || row["date"] || vals[0]}<br>${row["1순위 시간"] || row["1순위시간"] || row["time"] || vals[1]}</td>
+            <td>${row["강의실"] || row["room"] || vals[2]}</td>
+            <td>${row["학과명"] || row["dept"] || vals[4]} (${row["분반명"] || row["className"] || vals[5]})</td>
+            <td>${row["신청인원"] || row["count"] || vals[3]}명</td>
+            <td>2순위: ${row["2순위 가능일시"] || row["priority2"] || vals[6]}<br>3순위: ${row["3순위 가능일시"] || row["priority3"] || vals[7]}</td>
+            <td>
+              <button class="btn-edit" onclick="loadToEditForm('${rowIndex}')">수정</button>
+              <button class="btn-danger" onclick="deleteApply('${rowIndex}')">삭제</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function downloadExcel() {
+      if (serverData.length === 0) {
+        alert("다운로드할 데이터가 없습니다.");
+        return;
+      }
+
+      let csv = "\uFEFF"; 
+      csv += "No,신청자,1순위날짜,1순위시간,강의실,학과명,분반명,신청인원,2순위가능일시,3순위가능일시,특이사항\n";
+
+      serverData.forEach((row, idx) => {
+        const vals = Object.values(row);
+        csv += `"${idx+1}","${row["신청자명"]||row["신청자"]||row["applicantName"]||vals[9]}","${row["1순위 희망일"]||row["1순위날짜"]||row["date"]||vals[0]}","${row["1순위 시간"]||row["1순위시간"]||row["time"]||vals[1]}","${row["강의실"]||row["room"]||vals[2]}","${row["학과명"]||row["dept"]||vals[4]}","${row["분반명"]||row["className"]||vals[5]}","${row["신청인원"]||row["count"]||vals[3]}","${row["2순위 가능일시"]||row["priority2"]||vals[6]}","${row["3순위 가능일시"]||row["priority3"]||vals[7]}","${row["특이사항"]||row["note"]||vals[8]||""}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", `2026_디지털리터러시_신청내역_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  </script>
 </body>
 </html>

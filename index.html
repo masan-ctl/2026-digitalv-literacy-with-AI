@@ -51,7 +51,6 @@
     .room-info { display: flex; justify-content: space-between; color: #64748b; margin-top: 1px; font-size: 0.73rem; }
     .status-ok { color: #10b981; font-weight: bold; }
     .status-full { color: #ef4444; font-weight: bold; }
-    .status-off { color: #94a3b8; }
 
     /* 신청 폼 섹션 */
     .form-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: fit-content; }
@@ -259,8 +258,8 @@
   </div>
 
   <script>
-    // 제공받으신 구글 앱스크립트 URL 반영 완료
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQQLHlM8KTot-5-HHgBt57BLD4qgDlj6T6ByAjug0DTKvMigwAUehmCy1hOwB_1qjDCQ/exec";
+    // 전달해주신 신규 배포 URL 반영
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyc1n1VN5dlFDmmVLkjyOtsDdDUHLqe8OqI5-_YPMc7ggA17E9PNV-4XiuvXIZtamewVw/exec";
 
     let currentYear = 2026;
     let currentMonth = 9; // 9월 기본
@@ -275,7 +274,7 @@
       "2026-10-09": { name: "한글날", icon: "🇰🇷" }
     };
 
-    // 신청 가능 범위
+    // 신청 가능 범위 (9월 16일부터)
     const START_DATE = new Date("2026-09-16");
     const END_DATE = new Date("2026-11-13");
 
@@ -292,7 +291,7 @@
       renderCalendar();
     }
 
-    // JSONP 방식으로 데이터 동적 수신
+    // JSONP 방식으로 데이터 수신
     function loadData() {
       const oldScript = document.getElementById('jsonp-script');
       if (oldScript) oldScript.remove();
@@ -311,13 +310,23 @@
       }
     }
 
+    // 객체에서 유연한 필드 값 가져오기 헬퍼 함수
+    function getValue(row, keys) {
+      for (let key of keys) {
+        if (row[key] !== undefined && row[key] !== null) {
+          return String(row[key]).trim();
+        }
+      }
+      return "";
+    }
+
     function getSlotStats() {
       const stats = {};
       serverData.forEach(row => {
-        let date = String(row["1순위 희망일"] || row["1순위날짜"] || row["date"] || '').trim();
-        const time = String(row["1순위 시간"] || row["1순위시간"] || row["time"] || '').trim();
-        const room = String(row["강의실"] || row["room"] || '').trim();
-        const count = parseInt(row["신청인원"] || row["count"]) || 0;
+        let date = getValue(row, ["1순위 희망일", "1순위날짜", "date", "날짜"]);
+        const time = getValue(row, ["1순위 시간", "1순위시간", "time", "시간"]);
+        const room = getValue(row, ["강의실", "room"]);
+        const count = parseInt(getValue(row, ["신청인원", "count", "인원"])) || 0;
 
         if (date.includes('T')) date = date.split('T')[0];
         date = date.replace(/\.\s*/g, '-').replace(/-$/, '');
@@ -334,7 +343,6 @@
       const grid = document.getElementById("calendarGrid");
       grid.innerHTML = "";
 
-      // 요일 헤더 (월~금)
       ["월", "화", "수", "목", "금"].forEach(day => {
         grid.innerHTML += `<div class="day-header">${day}</div>`;
       });
@@ -355,7 +363,7 @@
         const dateObj = new Date(currentYear, currentMonth - 1, d);
         const dayOfWeek = dateObj.getDay();
 
-        if (dayOfWeek === 0 || dayOfWeek === 6) continue; // 토, 일 제외
+        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
 
         const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const holiday = holidays[dateStr];
@@ -378,7 +386,6 @@
             cellHtml += `<div class="time-slot" onclick="selectSlotFromCalendar('${dateStr}', '${t}')">
               <div class="time-label">${t}</div>`;
             
-            // 모든 요일(목요일 포함)에 강의실1, 강의실2 전면 오픈
             ["강의실1", "강의실2"].forEach(r => {
               const count = stats[`${dateStr}_${t}_${r}`] || 0;
               const isFull = count >= 40;
@@ -403,7 +410,6 @@
       }
     }
 
-    // 달력 클릭 시 입력폼 연동
     function selectSlotFromCalendar(dateStr, timeStr) {
       document.getElementById("date").value = dateStr;
       document.getElementById("time").value = timeStr;
@@ -414,7 +420,6 @@
     function validateAndSyncDate() {
       const dateInput = document.getElementById("date");
       const dateVal = dateInput.value;
-      const optRoom2 = document.getElementById("optRoom2");
 
       if (!dateVal) return;
 
@@ -438,11 +443,9 @@
         dateInput.value = "";
         return;
       }
-
-      optRoom2.disabled = false;
     }
 
-    // 폼 제출 (생성 및 수정)
+    // 신청 제출 (생성 및 수정)
     function submitForm(e) {
       e.preventDefault();
 
@@ -456,6 +459,7 @@
       const formData = new URLSearchParams();
       formData.append("action", actionType);
       if (actionType === "update") {
+        formData.append("rowId", editIndex);
         formData.append("rowIndex", editIndex);
       }
 
@@ -483,7 +487,7 @@
         setTimeout(loadData, 800);
       })
       .catch(err => {
-        alert("처리가 완료되었습니다. 달력을 확인해주세요.");
+        alert("처리가 완료되었습니다.");
         resetFormToCreate();
         loadData();
       })
@@ -500,7 +504,6 @@
       document.getElementById("submitBtn").innerText = "신청 제출하기";
     }
 
-    // 모달 제어
     function openUserCheckModal() {
       document.getElementById("userModal").style.display = "flex";
     }
@@ -508,7 +511,7 @@
       document.getElementById(id).style.display = "none";
     }
 
-    // 일반 사용자 신청내역 조회 (키 매칭 및 공백 완화)
+    // 일반 사용자 신청내역 조회
     function searchUserApply() {
       const name = document.getElementById("searchName").value.trim();
       const pw = document.getElementById("searchPw").value.trim();
@@ -522,24 +525,24 @@
       tbody.innerHTML = "";
 
       const userRows = serverData.filter(row => {
-        const rName = String(row["신청자명"] || row["신청자"] || row["applicantName"] || "").trim();
-        const rPw = String(row["비밀번호"] || row["pw"] || "").trim();
+        const rName = getValue(row, ["신청자 이름", "신청자명", "신청자", "applicantName"]);
+        const rPw = getValue(row, ["비밀번호", "pw"]).replace(/^'/, '');
         return rName === name && rPw === pw;
       });
 
       if (userRows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#ef4444;">일치하는 신청 내역이 없습니다. 입력정보를 확인해주세요.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#ef4444;">일치하는 신청 내역이 없습니다. 정보 확인 후 다시 시도해 주세요.</td></tr>`;
         return;
       }
 
       userRows.forEach(row => {
-        const date = row["1순위 희망일"] || row["1순위날짜"] || row["date"] || "";
-        const time = row["1순위 시간"] || row["1순위시간"] || row["time"] || "";
-        const room = row["강의실"] || row["room"] || "";
-        const dept = row["학과명"] || row["dept"] || "";
-        const className = row["분반명"] || row["className"] || "";
-        const count = row["신청인원"] || row["count"] || "";
-        const rowIndex = row["_rowIndex"] || row["rowIndex"];
+        const date = getValue(row, ["1순위 희망일", "1순위날짜", "date"]);
+        const time = getValue(row, ["1순위 시간", "1순위시간", "time"]);
+        const room = getValue(row, ["강의실", "room"]);
+        const dept = getValue(row, ["학과명", "dept"]);
+        const className = getValue(row, ["분반명", "className"]);
+        const count = getValue(row, ["신청인원", "count"]);
+        const rId = row.rowId || row.rowIndex;
 
         tbody.innerHTML += `
           <tr>
@@ -548,36 +551,36 @@
             <td>${dept} (${className})</td>
             <td>${count}명</td>
             <td>
-              <button class="btn-edit" onclick="loadToEditForm('${rowIndex}')">수정</button>
-              <button class="btn-danger" onclick="deleteApply('${rowIndex}')">삭제</button>
+              <button class="btn-edit" onclick="loadToEditForm('${rId}')">수정</button>
+              <button class="btn-danger" onclick="deleteApply('${rId}', '${pw}')">삭제</button>
             </td>
           </tr>
         `;
       });
     }
 
-    // 수정 폼에 기존 데이터 로드
-    function loadToEditForm(rowIndex) {
-      const target = serverData.find(r => (r["_rowIndex"] || r["rowIndex"]) == rowIndex);
+    // 수정 폼 로드
+    function loadToEditForm(rowId) {
+      const target = serverData.find(r => (r.rowId || r.rowIndex) == rowId);
       if (!target) return;
 
       closeModal('userModal');
 
-      let dateVal = String(target["1순위 희망일"] || target["1순위날짜"] || target["date"] || "").trim();
+      let dateVal = getValue(target, ["1순위 희망일", "1순위날짜", "date"]);
       if (dateVal.includes('T')) dateVal = dateVal.split('T')[0];
 
-      document.getElementById("editRowIndex").value = rowIndex;
+      document.getElementById("editRowIndex").value = rowId;
       document.getElementById("date").value = dateVal;
-      document.getElementById("time").value = target["1순위 시간"] || target["1순위시간"] || target["time"] || "";
-      document.getElementById("room").value = target["강의실"] || target["room"] || "";
-      document.getElementById("count").value = target["신청인원"] || target["count"] || 1;
-      document.getElementById("dept").value = target["학과명"] || target["dept"] || "";
-      document.getElementById("className").value = target["분반명"] || target["className"] || "";
-      document.getElementById("priority2").value = target["2순위 가능일시"] || target["priority2"] || "";
-      document.getElementById("priority3").value = target["3순위 가능일시"] || target["priority3"] || "";
-      document.getElementById("note").value = target["특이사항"] || target["note"] || "";
-      document.getElementById("applicantName").value = target["신청자명"] || target["신청자"] || target["applicantName"] || "";
-      document.getElementById("pw").value = target["비밀번호"] || target["pw"] || "";
+      document.getElementById("time").value = getValue(target, ["1순위 시간", "1순위시간", "time"]);
+      document.getElementById("room").value = getValue(target, ["강의실", "room"]);
+      document.getElementById("count").value = getValue(target, ["신청인원", "count"]) || 1;
+      document.getElementById("dept").value = getValue(target, ["학과명", "dept"]);
+      document.getElementById("className").value = getValue(target, ["분반명", "className"]);
+      document.getElementById("priority2").value = getValue(target, ["2순위 가능일시", "priority2"]);
+      document.getElementById("priority3").value = getValue(target, ["3순위 가능일시", "priority3"]);
+      document.getElementById("note").value = getValue(target, ["특이사항", "note"]);
+      document.getElementById("applicantName").value = getValue(target, ["신청자 이름", "신청자명", "신청자", "applicantName"]);
+      document.getElementById("pw").value = getValue(target, ["비밀번호", "pw"]).replace(/^'/, '');
 
       document.getElementById("formHeaderTitle").querySelector("span").innerText = "✏️ 신청내역 수정하기";
       document.getElementById("btnCancelEdit").style.display = "inline-block";
@@ -587,15 +590,22 @@
       document.getElementById("applyForm").scrollIntoView({ behavior: 'smooth' });
     }
 
-    // 신청 삭제
-    function deleteApply(rowIndex) {
+    // 신청 삭제 (구글 시트 연동 및 달력 반영 제거)
+    function deleteApply(rowId, pw) {
       if (!confirm("정말로 해당 신청 내역을 삭제하시겠습니까?")) return;
+
+      const userPw = pw || prompt("삭제 처리를 위해 비밀번호를 입력해주세요:");
+      if (!userPw) return;
 
       const formData = new URLSearchParams();
       formData.append("action", "delete");
-      formData.append("rowIndex", rowIndex);
+      formData.append("rowId", rowId);
+      formData.append("rowIndex", rowId);
+      formData.append("pw", userPw);
+      if (isAdminLoggedIn) formData.append("adminPw", "1494");
 
-      serverData = serverData.filter(r => (r["_rowIndex"] || r["rowIndex"]) != rowIndex);
+      // UI 및 달력에서 삭제 항목 즉시 제거
+      serverData = serverData.filter(r => (r.rowId || r.rowIndex) != rowId);
       renderCalendar();
       if (isAdminLoggedIn) renderAdminTable();
 
@@ -611,7 +621,7 @@
         setTimeout(loadData, 800);
       })
       .catch(() => {
-        alert("삭제 처리가 요청되었습니다.");
+        alert("삭제가 요청되었습니다.");
         loadData();
       });
     }
@@ -638,19 +648,29 @@
       }
 
       serverData.forEach((row, idx) => {
-        const rowIndex = row["_rowIndex"] || row["rowIndex"];
+        const rId = row.rowId || row.rowIndex;
+        const name = getValue(row, ["신청자 이름", "신청자명", "신청자", "applicantName"]);
+        const date = getValue(row, ["1순위 희망일", "1순위날짜", "date"]);
+        const time = getValue(row, ["1순위 시간", "1순위시간", "time"]);
+        const room = getValue(row, ["강의실", "room"]);
+        const dept = getValue(row, ["학과명", "dept"]);
+        const className = getValue(row, ["분반명", "className"]);
+        const count = getValue(row, ["신청인원", "count"]);
+        const p2 = getValue(row, ["2순위 가능일시", "priority2"]);
+        const p3 = getValue(row, ["3순위 가능일시", "priority3"]);
+
         tbody.innerHTML += `
           <tr>
             <td>${idx + 1}</td>
-            <td><strong>${row["신청자명"] || row["신청자"] || row["applicantName"]}</strong></td>
-            <td>${row["1순위 희망일"] || row["1순위날짜"] || row["date"]}<br>${row["1순위 시간"] || row["1순위시간"] || row["time"]}</td>
-            <td>${row["강의실"] || row["room"]}</td>
-            <td>${row["학과명"] || row["dept"]} (${row["분반명"] || row["className"]})</td>
-            <td>${row["신청인원"] || row["count"]}명</td>
-            <td>2순위: ${row["2순위 가능일시"] || row["priority2"]}<br>3순위: ${row["3순위 가능일시"] || row["priority3"]}</td>
+            <td><strong>${name}</strong></td>
+            <td>${date}<br>${time}</td>
+            <td>${room}</td>
+            <td>${dept} (${className})</td>
+            <td>${count}명</td>
+            <td>2순위: ${p2}<br>3순위: ${p3}</td>
             <td>
-              <button class="btn-edit" onclick="loadToEditForm('${rowIndex}')">수정</button>
-              <button class="btn-danger" onclick="deleteApply('${rowIndex}')">삭제</button>
+              <button class="btn-edit" onclick="loadToEditForm('${rId}')">수정</button>
+              <button class="btn-danger" onclick="deleteApply('${rId}', '')">삭제</button>
             </td>
           </tr>
         `;
@@ -668,7 +688,18 @@
       csv += "No,신청자,1순위날짜,1순위시간,강의실,학과명,분반명,신청인원,2순위가능일시,3순위가능일시,특이사항\n";
 
       serverData.forEach((row, idx) => {
-        csv += `"${idx+1}","${row["신청자명"]||row["신청자"]||row["applicantName"]}","${row["1순위 희망일"]||row["1순위날짜"]||row["date"]}","${row["1순위 시간"]||row["1순위시간"]||row["time"]}","${row["강의실"]||row["room"]}","${row["학과명"]||row["dept"]}","${row["분반명"]||row["className"]}","${row["신청인원"]||row["count"]}","${row["2순위 가능일시"]||row["priority2"]}","${row["3순위 가능일시"]||row["priority3"]}","${row["특이사항"]||row["note"]||""}"\n`;
+        const name = getValue(row, ["신청자 이름", "신청자명", "신청자", "applicantName"]);
+        const date = getValue(row, ["1순위 희망일", "1순위날짜", "date"]);
+        const time = getValue(row, ["1순위 시간", "1순위시간", "time"]);
+        const room = getValue(row, ["강의실", "room"]);
+        const dept = getValue(row, ["학과명", "dept"]);
+        const className = getValue(row, ["분반명", "className"]);
+        const count = getValue(row, ["신청인원", "count"]);
+        const p2 = getValue(row, ["2순위 가능일시", "priority2"]);
+        const p3 = getValue(row, ["3순위 가능일시", "priority3"]);
+        const note = getValue(row, ["특이사항", "note"]);
+
+        csv += `"${idx+1}","${name}","${date}","${time}","${room}","${dept}","${className}","${count}","${p2}","${p3}","${note}"\n`;
       });
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

@@ -258,8 +258,8 @@
   </div>
 
   <script>
-    // 전달해주신 신규 배포 URL 반영
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyc1n1VN5dlFDmmVLkjyOtsDdDUHLqe8OqI5-_YPMc7ggA17E9PNV-4XiuvXIZtamewVw/exec";
+    // 전달해주신 신규 배포 URL 반영 완료
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyiJoIhfPft3dw5PwnPtAcNZza2UGEtcmmyQmdoErwUS3WTtcS8QPc13NL6tMWH5nWDDQ/exec";
 
     let currentYear = 2026;
     let currentMonth = 9; // 9월 기본
@@ -274,7 +274,7 @@
       "2026-10-09": { name: "한글날", icon: "🇰🇷" }
     };
 
-    // 신청 가능 범위 (9월 16일부터)
+    // 신청 가능 범위 (9월 16일부터 11월 13일까지)
     const START_DATE = new Date("2026-09-16");
     const END_DATE = new Date("2026-11-13");
 
@@ -474,6 +474,7 @@
       formData.append("note", document.getElementById("note").value);
       formData.append("applicantName", document.getElementById("applicantName").value);
       formData.append("pw", document.getElementById("pw").value);
+      if (isAdminLoggedIn) formData.append("adminPw", "1494");
 
       fetch(SCRIPT_URL, {
         method: "POST",
@@ -565,6 +566,7 @@
       if (!target) return;
 
       closeModal('userModal');
+      closeModal('adminModal');
 
       let dateVal = getValue(target, ["1순위 희망일", "1순위날짜", "date"]);
       if (dateVal.includes('T')) dateVal = dateVal.split('T')[0];
@@ -590,21 +592,24 @@
       document.getElementById("applyForm").scrollIntoView({ behavior: 'smooth' });
     }
 
-    // 신청 삭제 (구글 시트 연동 및 달력 반영 제거)
+    // 신청 삭제
     function deleteApply(rowId, pw) {
       if (!confirm("정말로 해당 신청 내역을 삭제하시겠습니까?")) return;
 
-      const userPw = pw || prompt("삭제 처리를 위해 비밀번호를 입력해주세요:");
-      if (!userPw) return;
+      let userPw = pw;
+      if (!isAdminLoggedIn && !userPw) {
+        userPw = prompt("삭제 처리를 위해 신청 시 입력한 비밀번호 4자리를 입력해주세요:");
+        if (!userPw) return;
+      }
 
       const formData = new URLSearchParams();
       formData.append("action", "delete");
       formData.append("rowId", rowId);
       formData.append("rowIndex", rowId);
-      formData.append("pw", userPw);
+      formData.append("pw", userPw || "");
       if (isAdminLoggedIn) formData.append("adminPw", "1494");
 
-      // UI 및 달력에서 삭제 항목 즉시 제거
+      // 화면에서 삭제 항목 즉시 제거
       serverData = serverData.filter(r => (r.rowId || r.rowIndex) != rowId);
       renderCalendar();
       if (isAdminLoggedIn) renderAdminTable();

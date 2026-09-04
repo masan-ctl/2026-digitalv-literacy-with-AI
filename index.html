@@ -25,6 +25,7 @@
     .main-container { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
     @media (max-width: 1024px) { .main-container { grid-template-columns: 1fr; } }
 
+    /* 달력 섹션 */
     .calendar-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
     .cal-header h2 { font-size: 1.25rem; color: #0f172a; }
@@ -40,6 +41,7 @@
     
     .day-number { font-weight: bold; font-size: 0.95rem; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
     
+    /* 공휴일 관련 스타일 */
     .holiday-cell { background: #fff7ed !important; border-color: #ffedd5 !important; }
     .holiday-tag { font-size: 0.72rem; background: #ffedd5; color: #c2410c; padding: 3px 7px; border-radius: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
 
@@ -49,7 +51,9 @@
     .room-info { display: flex; justify-content: space-between; color: #64748b; margin-top: 1px; font-size: 0.73rem; }
     .status-ok { color: #10b981; font-weight: bold; }
     .status-full { color: #ef4444; font-weight: bold; }
+    .status-off { color: #94a3b8; }
 
+    /* 신청 폼 섹션 */
     .form-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); height: fit-content; }
     .form-title { font-size: 1.1rem; border-bottom: 2px solid #3b82f6; padding-bottom: 8px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; font-weight: bold; color: #1e293b; }
 
@@ -65,6 +69,7 @@
     .btn-submit:hover { background: #1d4ed8; }
     .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
 
+    /* 모달 스타일 */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
     .modal-content { background: white; border-radius: 12px; width: 90%; max-width: 800px; max-height: 85vh; overflow-y: auto; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 15px; }
@@ -254,14 +259,15 @@
   </div>
 
   <script>
-    // 제공해주신 신규 실행 스크립트 URL 반영
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyGUMTXTumF97zQYn_PrqkrCWDmmdEVViGoYxUHlTgHtXWRgKTRts9DOTuSkrM8Xc0qMg/exec";
+    // 제공받으신 구글 앱스크립트 URL 반영 완료
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyQQLHlM8KTot-5-HHgBt57BLD4qgDlj6T6ByAjug0DTKvMigwAUehmCy1hOwB_1qjDCQ/exec";
 
     let currentYear = 2026;
-    let currentMonth = 9;
+    let currentMonth = 9; // 9월 기본
     let serverData = [];
     let isAdminLoggedIn = false;
 
+    // 공휴일 목록 및 아이콘
     const holidays = {
       "2026-09-24": { name: "추석 연휴", icon: "🌕" },
       "2026-09-25": { name: "추석 당일", icon: "🌕" },
@@ -269,7 +275,7 @@
       "2026-10-09": { name: "한글날", icon: "🇰🇷" }
     };
 
-    // 강의 시작일: 2026년 9월 16일
+    // 신청 가능 범위
     const START_DATE = new Date("2026-09-16");
     const END_DATE = new Date("2026-11-13");
 
@@ -286,6 +292,7 @@
       renderCalendar();
     }
 
+    // JSONP 방식으로 데이터 동적 수신
     function loadData() {
       const oldScript = document.getElementById('jsonp-script');
       if (oldScript) oldScript.remove();
@@ -307,10 +314,10 @@
     function getSlotStats() {
       const stats = {};
       serverData.forEach(row => {
-        let date = String(row["1순위 희망일"] || row["1순위날짜"] || row["date"] || Object.values(row)[0] || '').trim();
-        const time = String(row["1순위 시간"] || row["1순위시간"] || row["time"] || Object.values(row)[1] || '').trim();
-        const room = String(row["강의실"] || row["room"] || Object.values(row)[2] || '').trim();
-        const count = parseInt(row["신청인원"] || row["count"] || Object.values(row)[3]) || 0;
+        let date = String(row["1순위 희망일"] || row["1순위날짜"] || row["date"] || '').trim();
+        const time = String(row["1순위 시간"] || row["1순위시간"] || row["time"] || '').trim();
+        const room = String(row["강의실"] || row["room"] || '').trim();
+        const count = parseInt(row["신청인원"] || row["count"]) || 0;
 
         if (date.includes('T')) date = date.split('T')[0];
         date = date.replace(/\.\s*/g, '-').replace(/-$/, '');
@@ -327,6 +334,7 @@
       const grid = document.getElementById("calendarGrid");
       grid.innerHTML = "";
 
+      // 요일 헤더 (월~금)
       ["월", "화", "수", "목", "금"].forEach(day => {
         grid.innerHTML += `<div class="day-header">${day}</div>`;
       });
@@ -347,7 +355,7 @@
         const dateObj = new Date(currentYear, currentMonth - 1, d);
         const dayOfWeek = dateObj.getDay();
 
-        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+        if (dayOfWeek === 0 || dayOfWeek === 6) continue; // 토, 일 제외
 
         const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const holiday = holidays[dateStr];
@@ -370,6 +378,7 @@
             cellHtml += `<div class="time-slot" onclick="selectSlotFromCalendar('${dateStr}', '${t}')">
               <div class="time-label">${t}</div>`;
             
+            // 모든 요일(목요일 포함)에 강의실1, 강의실2 전면 오픈
             ["강의실1", "강의실2"].forEach(r => {
               const count = stats[`${dateStr}_${t}_${r}`] || 0;
               const isFull = count >= 40;
@@ -394,6 +403,7 @@
       }
     }
 
+    // 달력 클릭 시 입력폼 연동
     function selectSlotFromCalendar(dateStr, timeStr) {
       document.getElementById("date").value = dateStr;
       document.getElementById("time").value = timeStr;
@@ -404,6 +414,7 @@
     function validateAndSyncDate() {
       const dateInput = document.getElementById("date");
       const dateVal = dateInput.value;
+      const optRoom2 = document.getElementById("optRoom2");
 
       if (!dateVal) return;
 
@@ -427,8 +438,11 @@
         dateInput.value = "";
         return;
       }
+
+      optRoom2.disabled = false;
     }
 
+    // 폼 제출 (생성 및 수정)
     function submitForm(e) {
       e.preventDefault();
 
@@ -466,10 +480,10 @@
       .then(() => {
         alert(actionType === "update" ? "신청 내역이 성공적으로 수정되었습니다!" : "신청이 성공적으로 제출되었습니다!");
         resetFormToCreate();
-        setTimeout(loadData, 1000);
+        setTimeout(loadData, 800);
       })
       .catch(err => {
-        alert("처리가 완료되었습니다.");
+        alert("처리가 완료되었습니다. 달력을 확인해주세요.");
         resetFormToCreate();
         loadData();
       })
@@ -486,6 +500,7 @@
       document.getElementById("submitBtn").innerText = "신청 제출하기";
     }
 
+    // 모달 제어
     function openUserCheckModal() {
       document.getElementById("userModal").style.display = "flex";
     }
@@ -493,8 +508,9 @@
       document.getElementById(id).style.display = "none";
     }
 
+    // 일반 사용자 신청내역 조회 (키 매칭 및 공백 완화)
     function searchUserApply() {
-      const name = document.getElementById("searchName").value.trim().toLowerCase();
+      const name = document.getElementById("searchName").value.trim();
       const pw = document.getElementById("searchPw").value.trim();
 
       if (!name || !pw) {
@@ -506,9 +522,8 @@
       tbody.innerHTML = "";
 
       const userRows = serverData.filter(row => {
-        const values = Object.values(row).map(v => String(v).trim().toLowerCase());
-        const rName = String(row["신청자명"] || row["신청자"] || row["applicantName"] || values[9] || "").trim().toLowerCase();
-        const rPw = String(row["비밀번호"] || row["pw"] || values[10] || "").trim();
+        const rName = String(row["신청자명"] || row["신청자"] || row["applicantName"] || "").trim();
+        const rPw = String(row["비밀번호"] || row["pw"] || "").trim();
         return rName === name && rPw === pw;
       });
 
@@ -518,14 +533,13 @@
       }
 
       userRows.forEach(row => {
-        const vals = Object.values(row);
-        const date = row["1순위 희망일"] || row["1순위날짜"] || row["date"] || vals[0] || "";
-        const time = row["1순위 시간"] || row["1순위시간"] || row["time"] || vals[1] || "";
-        const room = row["강의실"] || row["room"] || vals[2] || "";
-        const dept = row["학과명"] || row["dept"] || vals[4] || "";
-        const className = row["분반명"] || row["className"] || vals[5] || "";
-        const count = row["신청인원"] || row["count"] || vals[3] || "";
-        const rowIndex = row["_rowIndex"];
+        const date = row["1순위 희망일"] || row["1순위날짜"] || row["date"] || "";
+        const time = row["1순위 시간"] || row["1순위시간"] || row["time"] || "";
+        const room = row["강의실"] || row["room"] || "";
+        const dept = row["학과명"] || row["dept"] || "";
+        const className = row["분반명"] || row["className"] || "";
+        const count = row["신청인원"] || row["count"] || "";
+        const rowIndex = row["_rowIndex"] || row["rowIndex"];
 
         tbody.innerHTML += `
           <tr>
@@ -542,29 +556,28 @@
       });
     }
 
+    // 수정 폼에 기존 데이터 로드
     function loadToEditForm(rowIndex) {
-      const target = serverData.find(r => r["_rowIndex"] == rowIndex);
+      const target = serverData.find(r => (r["_rowIndex"] || r["rowIndex"]) == rowIndex);
       if (!target) return;
 
       closeModal('userModal');
-      closeModal('adminModal');
 
-      const vals = Object.values(target);
-      let dateVal = String(target["1순위 희망일"] || target["1순위날짜"] || target["date"] || vals[0] || "").trim();
+      let dateVal = String(target["1순위 희망일"] || target["1순위날짜"] || target["date"] || "").trim();
       if (dateVal.includes('T')) dateVal = dateVal.split('T')[0];
 
       document.getElementById("editRowIndex").value = rowIndex;
       document.getElementById("date").value = dateVal;
-      document.getElementById("time").value = target["1순위 시간"] || target["1순위시간"] || target["time"] || vals[1] || "";
-      document.getElementById("room").value = target["강의실"] || target["room"] || vals[2] || "";
-      document.getElementById("count").value = target["신청인원"] || target["count"] || vals[3] || 1;
-      document.getElementById("dept").value = target["학과명"] || target["dept"] || vals[4] || "";
-      document.getElementById("className").value = target["분반명"] || target["className"] || vals[5] || "";
-      document.getElementById("priority2").value = target["2순위 가능일시"] || target["priority2"] || vals[6] || "";
-      document.getElementById("priority3").value = target["3순위 가능일시"] || target["priority3"] || vals[7] || "";
-      document.getElementById("note").value = target["특이사항"] || target["note"] || vals[8] || "";
-      document.getElementById("applicantName").value = target["신청자명"] || target["신청자"] || target["applicantName"] || vals[9] || "";
-      document.getElementById("pw").value = target["비밀번호"] || target["pw"] || vals[10] || "";
+      document.getElementById("time").value = target["1순위 시간"] || target["1순위시간"] || target["time"] || "";
+      document.getElementById("room").value = target["강의실"] || target["room"] || "";
+      document.getElementById("count").value = target["신청인원"] || target["count"] || 1;
+      document.getElementById("dept").value = target["학과명"] || target["dept"] || "";
+      document.getElementById("className").value = target["분반명"] || target["className"] || "";
+      document.getElementById("priority2").value = target["2순위 가능일시"] || target["priority2"] || "";
+      document.getElementById("priority3").value = target["3순위 가능일시"] || target["priority3"] || "";
+      document.getElementById("note").value = target["특이사항"] || target["note"] || "";
+      document.getElementById("applicantName").value = target["신청자명"] || target["신청자"] || target["applicantName"] || "";
+      document.getElementById("pw").value = target["비밀번호"] || target["pw"] || "";
 
       document.getElementById("formHeaderTitle").querySelector("span").innerText = "✏️ 신청내역 수정하기";
       document.getElementById("btnCancelEdit").style.display = "inline-block";
@@ -574,14 +587,15 @@
       document.getElementById("applyForm").scrollIntoView({ behavior: 'smooth' });
     }
 
+    // 신청 삭제
     function deleteApply(rowIndex) {
-      if (!confirm("정말로 해당 신청 내역을 삭제하시겠습니까? (구글 시트에서도 삭제됩니다)")) return;
+      if (!confirm("정말로 해당 신청 내역을 삭제하시겠습니까?")) return;
 
       const formData = new URLSearchParams();
       formData.append("action", "delete");
       formData.append("rowIndex", rowIndex);
 
-      serverData = serverData.filter(r => r["_rowIndex"] != rowIndex);
+      serverData = serverData.filter(r => (r["_rowIndex"] || r["rowIndex"]) != rowIndex);
       renderCalendar();
       if (isAdminLoggedIn) renderAdminTable();
 
@@ -594,14 +608,15 @@
       .then(() => {
         alert("삭제 처리가 완료되었습니다.");
         closeModal('userModal');
-        setTimeout(loadData, 1000);
+        setTimeout(loadData, 800);
       })
       .catch(() => {
-        alert("삭제 처리가 완료되었습니다.");
+        alert("삭제 처리가 요청되었습니다.");
         loadData();
       });
     }
 
+    // 관리자 로그인
     function openAdminLogin() {
       const pw = prompt("관리자 비밀번호를 입력하세요:");
       if (pw === "1494") {
@@ -623,17 +638,16 @@
       }
 
       serverData.forEach((row, idx) => {
-        const vals = Object.values(row);
-        const rowIndex = row["_rowIndex"];
+        const rowIndex = row["_rowIndex"] || row["rowIndex"];
         tbody.innerHTML += `
           <tr>
             <td>${idx + 1}</td>
-            <td><strong>${row["신청자명"] || row["신청자"] || row["applicantName"] || vals[9]}</strong></td>
-            <td>${row["1순위 희망일"] || row["1순위날짜"] || row["date"] || vals[0]}<br>${row["1순위 시간"] || row["1순위시간"] || row["time"] || vals[1]}</td>
-            <td>${row["강의실"] || row["room"] || vals[2]}</td>
-            <td>${row["학과명"] || row["dept"] || vals[4]} (${row["분반명"] || row["className"] || vals[5]})</td>
-            <td>${row["신청인원"] || row["count"] || vals[3]}명</td>
-            <td>2순위: ${row["2순위 가능일시"] || row["priority2"] || vals[6]}<br>3순위: ${row["3순위 가능일시"] || row["priority3"] || vals[7]}</td>
+            <td><strong>${row["신청자명"] || row["신청자"] || row["applicantName"]}</strong></td>
+            <td>${row["1순위 희망일"] || row["1순위날짜"] || row["date"]}<br>${row["1순위 시간"] || row["1순위시간"] || row["time"]}</td>
+            <td>${row["강의실"] || row["room"]}</td>
+            <td>${row["학과명"] || row["dept"]} (${row["분반명"] || row["className"]})</td>
+            <td>${row["신청인원"] || row["count"]}명</td>
+            <td>2순위: ${row["2순위 가능일시"] || row["priority2"]}<br>3순위: ${row["3순위 가능일시"] || row["priority3"]}</td>
             <td>
               <button class="btn-edit" onclick="loadToEditForm('${rowIndex}')">수정</button>
               <button class="btn-danger" onclick="deleteApply('${rowIndex}')">삭제</button>
@@ -643,18 +657,18 @@
       });
     }
 
+    // 엑셀(CSV) 다운로드
     function downloadExcel() {
       if (serverData.length === 0) {
         alert("다운로드할 데이터가 없습니다.");
         return;
       }
 
-      let csv = "\uFEFF"; 
+      let csv = "\uFEFF"; // UTF-8 BOM
       csv += "No,신청자,1순위날짜,1순위시간,강의실,학과명,분반명,신청인원,2순위가능일시,3순위가능일시,특이사항\n";
 
       serverData.forEach((row, idx) => {
-        const vals = Object.values(row);
-        csv += `"${idx+1}","${row["신청자명"]||row["신청자"]||row["applicantName"]||vals[9]}","${row["1순위 희망일"]||row["1순위날짜"]||row["date"]||vals[0]}","${row["1순위 시간"]||row["1순위시간"]||row["time"]||vals[1]}","${row["강의실"]||row["room"]||vals[2]}","${row["학과명"]||row["dept"]||vals[4]}","${row["분반명"]||row["className"]||vals[5]}","${row["신청인원"]||row["count"]||vals[3]}","${row["2순위 가능일시"]||row["priority2"]||vals[6]}","${row["3순위 가능일시"]||row["priority3"]||vals[7]}","${row["특이사항"]||row["note"]||vals[8]||""}"\n`;
+        csv += `"${idx+1}","${row["신청자명"]||row["신청자"]||row["applicantName"]}","${row["1순위 희망일"]||row["1순위날짜"]||row["date"]}","${row["1순위 시간"]||row["1순위시간"]||row["time"]}","${row["강의실"]||row["room"]}","${row["학과명"]||row["dept"]}","${row["분반명"]||row["className"]}","${row["신청인원"]||row["count"]}","${row["2순위 가능일시"]||row["priority2"]}","${row["3순위 가능일시"]||row["priority3"]}","${row["특이사항"]||row["note"]||""}"\n`;
       });
 
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
